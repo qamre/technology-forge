@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: backend-config
+  namespace: three-tier
+
+data:
+  DB_HOST: database
+  DB_NAME: employee_db
+  DB_USER: admin

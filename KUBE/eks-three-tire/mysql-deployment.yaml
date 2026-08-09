@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: database
+  namespace: three-tier
+
+spec:
+
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: database
+
+  template:
+
+    metadata:
+      labels:
+        app: database
+
+    spec:
+
+      containers:
+
+        - name: mysql
+
+          image: mysql:8.0
+
+          ports:
+            - containerPort: 3306
+
+          env:
+
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: MYSQL_ROOT_PASSWORD
+
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DB_NAME
+
+            - name: MYSQL_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DB_USER
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: MYSQL_PASSWORD
+
+          volumeMounts:
+
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+
+          readinessProbe:
+
+            exec:
+              command:
+                - sh
+                - -c
+                - mysqladmin ping -h localhost -proot123
+
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+          livenessProbe:
+
+            exec:
+              command:
+                - sh
+                - -c
+                - mysqladmin ping -h localhost -proot123
+
+            initialDelaySeconds: 30
+            periodSeconds: 20
+
+      volumes:
+
+        - name: mysql-storage
+
+          persistentVolumeClaim:
+            claimName: mysql-pvc
