@@ -1,0 +1,112 @@
+
+services:
+
+  database:
+
+    image: mysql:8.0
+
+    container_name: mysql-db
+
+    restart: unless-stopped
+
+    environment:
+
+      MYSQL_ROOT_PASSWORD: root123
+
+      MYSQL_DATABASE: employee_db
+
+      MYSQL_USER: admin
+
+      MYSQL_PASSWORD: admin123
+
+    volumes:
+
+      - mysql-data:/var/lib/mysql
+
+    networks:
+
+      - three-tier-network
+
+    healthcheck:
+
+      test: ["CMD","mysqladmin","ping","-h","localhost","-proot123"]
+
+      interval: 10s
+
+      timeout: 5s
+
+      retries: 5
+
+
+  backend:
+
+    build: ./backend
+
+    container_name: backend-api
+
+    restart: unless-stopped
+
+    depends_on:
+
+      database:
+
+        condition: service_healthy
+
+    environment:
+
+      DB_HOST: database
+
+      DB_USER: admin
+
+      DB_PASSWORD: admin123
+
+      DB_NAME: employee_db
+
+    networks:
+
+      - three-tier-network
+
+    healthcheck:
+
+      test: ["CMD", "curl","-f","http://localhost:5000/"]
+
+      interval: 15s
+
+      timeout: 5s
+
+      retries: 5
+
+
+  frontend:
+
+    build: ./frontend
+
+    container_name: frontend
+
+    restart: unless-stopped
+
+    depends_on:
+
+      backend:
+
+        condition: service_healthy
+
+    ports:
+
+      - "80:80"
+
+    networks:
+
+      - three-tier-network
+
+
+
+volumes:
+
+  mysql-data:
+
+
+
+networks:
+
+  three-tier-network:
