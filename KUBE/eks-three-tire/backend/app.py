@@ -2,11 +2,8 @@ from flask import Flask
 import mysql.connector
 import os
 import time
-
 app = Flask(__name__)
-
 db = None
-
 # Retry until MySQL is ready
 while db is None:
     try:
@@ -20,18 +17,12 @@ while db is None:
     except Exception:
         print("Waiting for MySQL...")
         time.sleep(5)
-
-
 @app.route("/")
 def home():
     return "Backend API is Running"
-
-
 @app.route("/database")
 def database():
     cursor = db.cursor()
     cursor.execute("SELECT DATABASE();")
     return cursor.fetchone()[0]
-
-
 app.run(host="0.0.0.0", port=5000)
