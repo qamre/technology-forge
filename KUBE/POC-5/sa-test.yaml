@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sa-test
+spec:
+  serviceAccountName: app-sa
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      command:
+        - sh
+        - -c
+        - sleep 3600
