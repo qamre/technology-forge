@@ -214,12 +214,19 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
-  namespace: kube-system
 data:
   APP_ENV: production
   APP_NAME: inventory-service
 
 
+alam@DESKTOP-VK19M09:poc-2$ kubectl apply -f configmap.yaml
+configmap/app-config created
+alam@DESKTOP-VK19M09:poc-2$ kubectl get cm
+NAME               DATA   AGE
+app-config         2      7s
+kube-root-ca.crt   1      5d23h
+
+#pod-config-subpath.yaml
 #config-subpath.yaml
 apiVersion: v1
 kind: Pod
@@ -229,31 +236,30 @@ spec:
   containers:
     - name: toolbox
       image: qamre/toolbox:v1
-      env:
-        - name: APP_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: APP_NAME
       volumeMounts:
         - name: app-config
           mountPath: /etc/app/name.txt
+          subPath: APP_NAME
   volumes:
     - name: app-config
       configMap:
         name: app-config
 
 
-
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-2$ kubectl apply -f config-subpath.yaml
+alam@DESKTOP-VK19M09:poc-2$ kubectl apply -f pod-config-subpath.yaml
 pod/config-subpath created
 
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ kubectl exec config-inspector -- cat /etc/app/config/APP_NAME
-inventory-service
+alam@DESKTOP-VK19M09:poc-2$ kubectl get pod
+config-subpath     1/1     Running       0          43s
 
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-2$ kubectl exec config-subpath -- ls /etc/app
-name.txt
 
+/ #cat /etc/app/name.txt
+inventory-service/ #
+/ #
+/ #ls -l /etc/app
+total 4
+-rw-r--r--    1 root     root            17 Sep  1 06:49 name.txt
+/ #
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
