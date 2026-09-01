@@ -1,0 +1,1288 @@
+# Kubernetes Scenario-Based POCs
+
+Focus: mounting and referencing **ConfigMap**, **Secret**, **ServiceAccount**, and **PV/PVC**, plus pod-to-pod communication via a Service. 
+Three images are used — build each from its Dockerfile below and push it to Docker Hub or ECR, then reference your own image in every pod spec.
+
+---
+
+## Image 1 — `toolbox` (used in POC 1–8)
+
+General inspection pod used to test ConfigMap/Secret/ServiceAccount/PV/PVC mounts and env vars.
+
+`Dockerfile`:
+```dockerfile
+FROM alpine:3.20
+RUN apk add --no-cache curl busybox-extras
+CMD ["sleep", "infinity"]
+```
+
+No application code needed — it just idles so you can `kubectl exec` into it.
+
+---
+
+## Image 2 — `inventory-service` (used in POC 9–10)
+
+A small HTTP server that reflects its own environment variables and any mounted ConfigMap/Secret files back in the response — so a `curl` visually proves injection worked, not just an `exec`.
+
+`Dockerfile`:
+```dockerfile
+FROM python:3.12-alpine
+WORKDIR /app
+COPY app.py .
+EXPOSE 5678
+CMD ["python", "app.py"]
+```
+
+`app.py`:
+python
+import os
+import http.server
+
+CONFIG_DIR = "/etc/app/config"
+SECRET_DIR = "/etc/app/secrets"
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        lines = ["INVENTORY SERVICE", "=================="]
+        lines.append(f"APP_ENV env var: {os.environ.get('APP_ENV', '<not set>')}")
+        lines.append(f"DB_USERNAME env var: {os.environ.get('DB_USERNAME', '<not set>')}")
+
+        if os.path.isdir(CONFIG_DIR):
+            for f in sorted(os.listdir(CONFIG_DIR)):
+                path = os.path.join(CONFIG_DIR, f)
+                if os.path.isfile(path):
+                    with open(path) as fh:
+                        lines.append(f"config file {f}: {fh.read().strip()}")
+
+        if os.path.isdir(SECRET_DIR):
+            for f in sorted(os.listdir(SECRET_DIR)):
+                path = os.path.join(SECRET_DIR, f)
+                if os.path.isfile(path):
+                    with open(path) as fh:
+                        lines.append(f"secret file {f}: {fh.read().strip()}")
+
+        body = "\n".join(lines).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(body)
+
+http.server.HTTPServer(("0.0.0.0", 5678), Handler).serve_forever()
+```
+
+---
+
+## Image 3 — `order-service` (used in POC 9–10)
+
+A minimal client used to curl `inventory-service`.
+
+```Dockerfile`:
+```dockerfile
+FROM alpine:3.20
+RUN apk add --no-cache curl
+CMD ["sleep", "infinity"]
+```
+
+Build and push all three images to Docker Hub or ECR under your own account, and reference your own image name in every pod spec below instead of a public one.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## POC 1 — ConfigMap: Volume Mount + Env Var Reference
+
+1. Create ConfigMap `app-config` with keys: `APP_ENV=production`, `APP_NAME=inventory-service`.
+2. Create pod `config-inspector` (`toolbox` image), that:
+   - mounts `app-config` as a volume at `/etc/app/config`
+   - also injects `APP_ENV` as an environment variable via `configMapKeyRef`
+3. Verify:
+   - `kubectl exec config-inspector -- cat /etc/app/config/APP_ENV`
+   - `kubectl exec config-inspector -- printenv APP_ENV`
+
+Solution:- 
+
+#configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: kube-system
+data:
+  APP_ENV: production
+  APP_NAME: inventory-service
+
+
+
+#config-inspector.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: config-inspector
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+      volumeMounts:
+        - name: app-config
+          mountPath: /etc/app/config
+  volumes:
+    - name: app-config
+      configMap:
+        name: app-config
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ ls -l
+total 0
+-rwxrwxrwx 1 alam alam 454 Aug 19 17:39 config-inspector.yaml
+-rwxrwxrwx 1 alam alam 143 Aug 19 17:39 configmap.yaml
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ kubectl apply -f configmap.yaml
+configmap/app-config created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ kubectl apply -f config-inspector.yaml
+pod/config-inspector created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ kubectl get configmap
+NAME                                                   DATA   AGE
+app-config                                             2      31s
+pod/config-inspector created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ kubectl get pods -n kube-system | grep config-inspector
+config-inspector                   1/1     Running   0                63s
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ kubectl exec config-inspector -- cat /etc/app/config/APP_ENV
+production
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-Pkubectl exec config-inspector -- printenv APP_ENVnv APP_ENV
+production
+
+
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ kubectl exec -it config-inspector -- sh
+/ # df -h
+Filesystem                Size      Used Available Use% Mounted on
+overlay                1006.9G     17.2G    938.4G   2% /
+tmpfs                    64.0M         0     64.0M   0% /dev
+shm                      64.0M         0     64.0M   0% /dev/shm
+/dev/sdd               1006.9G     17.2G    938.4G   2% /dev/termination-log
+/dev/sdd               1006.9G     17.2G    938.4G   2% /etc/resolv.conf
+/dev/sdd               1006.9G     17.2G    938.4G   2% /etc/hostname
+/dev/sdd               1006.9G     17.2G    938.4G   2% /etc/hosts
+/dev/sdd               1006.9G     17.2G    938.4G   2% /etc/app/config
+tmpfs                     7.6G     12.0K      7.6G   0% /run/secrets/kubernetes.io/serviceaccount
+tmpfs                     3.8G         0      3.8G   0% /proc/acpi
+tmpfs                    64.0M         0     64.0M   0% /proc/interrupts
+tmpfs                    64.0M         0     64.0M   0% /proc/kcore
+tmpfs                    64.0M         0     64.0M   0% /proc/keys
+tmpfs                    64.0M         0     64.0M   0% /proc/latency_stats
+tmpfs                    64.0M         0     64.0M   0% /proc/timer_list
+tmpfs                     3.8G         0      3.8G   0% /proc/scsi
+tmpfs                     3.8G         0      3.8G   0% /sys/firmware
+/ # cd /etc/app/config
+/etc/app/config # df -h .
+Filesystem                Size      Used Available Use% Mounted on
+/dev/sdd               1006.9G     17.2G    938.4G   2% /dev/termination-log
+/etc/app/config # pwd
+/etc/app/config
+/etc/app/config #
+
+
+**Expected result:** `/etc/app/config/APP_ENV` contains `production`. `/etc/app/config/APP_NAME` also exists and contains `inventory-service` (mounted as a whole ConfigMap, both keys appear as files). `printenv APP_ENV` returns `production`. Only `APP_ENV` exists as an env var — `APP_NAME` does not, since it was never referenced with `configMapKeyRef`.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## POC 2 — ConfigMap: Mounting a Single Key (subPath)
+
+1. Reuse ConfigMap `app-config` from POC 1.
+2. Create pod `config-subpath` (`toolbox` image) that mounts **only** the `APP_NAME` key from `app-config` to the path `/etc/app/name.txt`, using `subPath`.
+3. Verify: `kubectl exec config-subpath -- cat /etc/app/name.txt` and `kubectl exec config-subpath -- ls /etc/app`.
+
+**Expected result:** `/etc/app/name.txt` contains `inventory-service`. `ls /etc/app` shows only `name.txt` — `APP_ENV` is not present anywhere in the pod, confirming `subPath` mounts a single key instead of the whole ConfigMap.
+
+
+subPath: Only mount a specific dir or file in side volume, in our case we are mounting /etc/app/name.txt  … name.txt is a directory
+
+Solution:-
+
+#configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: kube-system
+data:
+  APP_ENV: production
+  APP_NAME: inventory-service
+
+
+#config-subpath.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: config-subpath
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      env:
+        - name: APP_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_NAME
+      volumeMounts:
+        - name: app-config
+          mountPath: /etc/app/name.txt
+  volumes:
+    - name: app-config
+      configMap:
+        name: app-config
+
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-2$ kubectl apply -f config-subpath.yaml
+pod/config-subpath created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-1$ kubectl exec config-inspector -- cat /etc/app/config/APP_NAME
+inventory-service
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-2$ kubectl exec config-subpath -- ls /etc/app
+name.txt
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## POC 3 — Secret: Volume Mount + Env Var Reference
+
+1. Create Secret `db-credentials` with keys `username` and `password`.
+2. Create pod `secret-inspector` (`toolbox` image), that:
+   - mounts `db-credentials` as a volume at `/etc/app/secrets`
+   - injects `username` as env var `DB_USERNAME` via `secretKeyRef`
+3. Verify:
+   - `kubectl exec secret-inspector -- cat /etc/app/secrets/username`
+   - `kubectl exec secret-inspector -- cat /etc/app/secrets/password`
+   - `kubectl exec secret-inspector -- printenv DB_USERNAME`
+   - `kubectl exec secret-inspector -- ls -l /etc/app/secrets`
+
+**Expected result:** Both `username` and `password` appear as files under `/etc/app/secrets` with their decoded (plaintext) values. `printenv DB_USERNAME` returns the username value. `ls -l` shows the Secret volume mounted with restrictive file permissions (`0644` by default, root-owned) and backed by tmpfs rather than disk.
+
+
+#db-credentials.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+#opaque is the generic type of secret for the (coredentilas)
+type: Opaque  
+stringData:
+  DB_USERNAME: admin
+  DB_PASSWORD: admin123
+
+
+     mounts `db-credentials` as a volume at `/etc/app/secrets`
+   - injects `username` as env var `DB_USERNAME` via `secretKeyRef
+
+#secret-inspector.taml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-inspector
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      env:
+        - name: DB_USERNAM
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: APP_NAME
+      volumeMounts:
+        - name: db-secrets
+          mountPath: /etc/app/secrets
+  volumes:
+    - name: db-secrets
+      configMap:
+        name: db-credentials
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ ls -l
+-rwxrwxrwx 1 alam alam 195 Aug 19 22:35 db-credentials.yaml
+-rwxrwxrwx 1 alam alam 463 Aug 19 22:35 secret-inspector.yaml
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl apply -f db-credentials.yaml
+secret/db-credentials created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl get secret
+NAME             TYPE     DATA   AGE
+db-credentials   Opaque   2      117s
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl apply -f db-credentials.yaml
+secret/db-credentials configured
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl apply -f secret-inspector.yaml
+pod/secret-inspector created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl get pods | grep secret
+secret-inspector                   1/1     Running   0                13s
+
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl exec secret-inspector -- cat /etc/app/secrets/username
+admin
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl exec secret-inspector -- cat /etc/app/secrets/password
+admin123
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl exec secret-inspector -- printenv DB_USERNAME
+admin
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl exec secret-inspector -- ls -l /etc/app/secrets
+total 0
+lrwxrwxrwx    1 root     root            15 Aug 19 17:12 password -> ..data/password
+lrwxrwxrwx    1 root     root            15 Aug 19 17:12 username -> ..data/username
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+## POC 4 — Secret: Mounting a Single Key with Custom Permissions
+
+1. Reuse Secret `db-credentials`.
+2. Create pod `secret-subpath` (`toolbox` image) that mounts only the `password` key to `/etc/app/secret-password`, using `subPath`, with `defaultMode: 0400`.
+3. Verify: `kubectl exec secret-subpath -- cat /etc/app/secret-password` and `kubectl exec secret-subpath -- ls -l /etc/app/secret-password`.
+
+**Expected result:** File contains the password value only; `username` is not present in the pod at all. File permission mode shows `0400` (read-only for owner), confirming `defaultMode` was applied.
+
+
+#apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+#opaque is the generic type of secret for the (coredentilas)
+type: Opaque
+stringData:
+  username: admin
+  password: admin123
+
+
+
+#apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-subpath
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      volumeMounts:
+        - name: db-secret
+          mountPath: /etc/app/secret-password
+          subPath: password
+
+  volumes:
+    - name: db-secret
+      secret:
+        secretName: db-credentials
+        defaultMode: 0400
+
+
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-4$ kubectl get secrets
+NAME             TYPE     DATA   AGE
+db-credentials   Opaque   2      4h31m
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-4$ kubectl apply -f secret-subpath.yaml
+pod/secret-subpath created
+
+
+Verification check:-
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-4$ kubectl exec secret-subpath -- cat /etc/app/secret-password
+admin123
+
+admin123alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POCkubectl exec secret-subpath -- ls -l /etc/app/secret-passwordpassword
+-r--------    1 root     root             8 Aug 19 17:43 /etc/app/secret-password                  --- permission 0400
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## POC 5 — ServiceAccount: Assignment + Auto-Mounted Volume
+
+1. Create ServiceAccount `app-sa`.
+2. Create pod `sa-test` (`toolbox` image) with `serviceAccountName: app-sa`.
+
+
+
+3. Verify:
+   - `kubectl get pod sa-test -o jsonpath='{.spec.serviceAccountName}'`
+   - `kubectl exec sa-test -- ls /var/run/secrets/kubernetes.io/serviceaccount`
+   - `kubectl exec sa-test -- cat /var/run/secrets/kubernetes.io/serviceaccount/namespace`
+
+**Expected result:** `spec.serviceAccountName` returns `app-sa`. Without any explicit volume defined in the pod spec, `/var/run/secrets/kubernetes.io/serviceaccount` contains three auto-projected files: `token`, `ca.crt`, and `namespace`. The `namespace` file contains the pod's actual namespace — confirming Kubernetes injects this volume automatically for every ServiceAccount.
+
+
+A ServiceAccount in Kubernetes is an identity for a Pod/application.
+A Kubernetes ServiceAccount (SA) gives a Pod an identity that it can use when communicating with the Kubernetes API.
+
+
+#app-sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-sa
+
+
+#cat sa-test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sa-test
+spec:
+  serviceAccountName: app-sa
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      command:
+        - sh
+        - -c
+        - sleep 3600
+
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-5$ ls -l
+total 0
+-rwxrwxrwx 1 alam alam  65 Aug 21 11:00 app-sa.yaml
+-rwxrwxrwx 1 alam alam 225 Aug 24 14:38 sa-test.yaml
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-5$ kubectl apply -f app-sa.yaml
+serviceaccount/app-sa created
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-5$ kubectl apply -f sa-test.yaml
+pod/sa-test created
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-5$ kubectl get pod sa-test -o jsonpath='{.spec.serviceAccountName}'
+app-sa
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-5$ kubectl exec sa-test -- ls /var/run/secrets/kubernetes.io/serviceaccount
+ca.crt
+namespace
+token
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-5$ kubectl exec sa-test -- cat /var/run/secrets/kubernetes.io/serviceaccount/namespace
+default
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+## POC 6 — ServiceAccount: Disabling Auto-Mount
+
+1. Create ServiceAccount `app-sa-no-mount` with `automountServiceAccountToken: false`.
+2. Create pod `sa-no-mount-test` (`toolbox` image) using that ServiceAccount.
+3. Verify: `kubectl exec sa-no-mount-test -- ls /var/run/secrets/kubernetes.io/serviceaccount`.
+
+**Expected result:** The command fails with "No such file or directory" — no token volume is mounted, confirming `automountServiceAccountToken: false` on the ServiceAccount (or on the pod spec) suppresses the default auto-mount behavior.
+
+
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-sa-no-mount
+automountServiceAccountToken: false
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sa-no-mount-test
+spec:
+  serviceAccountName: app-sa-no-mount
+  automountServiceAccountToken: false
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      command:
+        - sh
+        - -c
+        - sleep 3600
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-6$ kubectl apply -f app-sa-no-mount.yaml
+serviceaccount/app-sa-no-mount created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-6$ kubectl apply -f sa-test.yaml
+pod/sa-no-mount-test created
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-6$ kubectl exec sa-no-mount-test -- ls /var/run/secrets/kubernetes.io/serviceaccount
+ls: /var/run/secrets/kubernetes.io/serviceaccount: No such file or directory
+command terminated with exit code 1
+
+---------------------------------------------------------------------------------------------
+
+## POC 7 — PV + PVC: Persistence Across Pod Recreation
+
+1. Create a 1Gi PersistentVolume (hostPath is fine for a local cluster).  -- PV
+2. Create a PVC that binds to it.					  -- PVC
+3. Create pod `pvc-test` (`toolbox` image), mounting the PVC at `/data`.
+
+4. `kubectl exec pvc-test -- sh -c 'echo hello-from-poc7 > /data/hello.txt'`
+5.  Delete pod `pvc-test`. Recreate it with the **same PVC**.
+6. `kubectl exec pvc-test -- cat /data/hello.txt`
+
+**Expected result:** `/data/hello.txt` still contains `hello-from-poc7` after the pod is recreated. `kubectl get pvc` shows the claim remains `Bound` throughout, confirming PV/PVC lifecycle is independent of the pod lifecycle.
+
+
+#pvc-test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-test
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      command: ["sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: shared-storage
+          mountPath: /data
+  volumes:
+    - name: shared-storage
+      persistentVolumeClaim:
+        claimName: shared-pvc
+
+#shared-pvc.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: poc7-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: poc7-local
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mnt/data/poc7
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: poc7-local
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: poc7-pv
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-8$ kubectl create -f shared-pvc.yaml
+persistentvolume/poc7-pv created
+persistentvolumeclaim/shared-pvc created
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-8$ kubectl create -f pvc-test.yaml
+pod/pvc-test created
+
+
+Output:-
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-8$ kubectl exec pvc-test -- cat /data/hello.txt
+hello-from-poc7
+
+After deletion and recreation
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-8$ kubectl create -f pvc-test.yaml
+pod/pvc-test created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-8$ kubectl exec pvc-test -- cat /data/hello.txt
+hello-from-poc7
+
+
+
+----------------------------------------------------------------------------------------------------------
+
+## POC 8 — Two Pods Sharing One PVC
+
+1. Reuse (or create another) PVC.
+2. Create `pod-a` and `pod-b` (both `toolbox` image), mounting the same PVC at `/data`.
+3. `pod-a`: `kubectl exec pod-a -- sh -c 'echo shared-data > /data/test.txt'`
+4. `pod-b`: `kubectl exec pod-b -- cat /data/test.txt`
+
+**Expected result:** If both pods land on the same node and the PV is `ReadWriteOnce`, `pod-b` successfully reads `shared-data` — RWO restricts the volume to a single **node**, not a single pod, so co-located pods can share it. If the scheduler places `pod-b` on a different node, the mount fails or the pod stays stuck in `ContainerCreating`, since an RWO volume can't attach to two nodes at once. A `ReadWriteMany` PV (e.g. NFS-backed) would succeed regardless of node placement.
+
+
+Solutions:-
+
+#shared-pvc.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: poc7-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: poc7-local
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mnt/data/poc7
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: poc7-local
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: poc7-pv
+
+
+
+#pvc-test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-a
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      command: ["sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: shared-storage
+          mountPath: /data
+  volumes:
+    - name: shared-storage
+      persistentVolumeClaim:
+        claimName: shared-pvc
+
+
+#pvc-test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-b
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/toolbox:v1
+      command: ["sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: shared-storage
+          mountPath: /data
+  volumes:
+    - name: shared-storage
+      persistentVolumeClaim:
+        claimName: shared-pvc
+
+
+Outputs:-
+
+#kubectl exec -it pod-a -- sh
+
+/data # cat /data/test.txt
+shared-data
+
+/data # df -h .
+Filesystem                Size      Used Available Use% Mounted on
+overlay                1006.9G     17.2G    938.4G   2% /data
+/data # exit
+
+/data # hostname
+pod-b
+
+Pods has been created on same node hence we are able to start the both the pods. 
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-8$ kubectl get pods
+NAME               READY   STATUS    RESTARTS      AGE
+pod-a              1/1     Running   0             8m
+pod-b              1/1     Running   0             7m54s
+pvc-test           1/1     Running   0             26m
+
+----------------------------
+Above question With NFS way
+
+helm version
+helm repo add csi-driver-nfs https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+helm repo list
+helm repo update
+helm install csi-driver-nfs csi-driver-nfs/csi-driver-nfs   --namespace kube-system
+kubectl get pods -n kube-system | grep nfs
+curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.13.2/deploy/install-driver.sh | bash -s v4.13.2 --
+
+
+#nfs-server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-server
+  namespace: poc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-server
+  template:
+    metadata:
+      labels:
+        app: nfs-server
+    spec:
+      containers:
+        - name: nfs-server
+          image: itsthenetwork/nfs-server-alpine:latest
+          securityContext:
+            privileged: true
+          env:
+            - name: SHARED_DIRECTORY
+              value: /exports
+          ports:
+            - name: nfs
+              containerPort: 2049
+              protocol: TCP
+          volumeMounts:
+            - name: exports
+              mountPath: /exports
+      volumes:
+        - name: exports
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nfs-server
+  namespace: poc
+spec:
+  type: ClusterIP
+  selector:
+    app: nfs-server
+  ports:
+    - name: nfs
+      port: 2049
+      targetPort: 2049
+      protocol: TCP
+
+
+#nfs-storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: nfs-server.poc.svc.cluster.local
+  share: /
+  onDelete: delete
+mountOptions:
+  - nfsvers=4.1
+
+
+
+#shared-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-data
+  namespace: poc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 1Gi
+
+
+
+#rwx-test.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rwx-test
+  namespace: poc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rwx-test
+  template:
+    metadata:
+      labels:
+        app: rwx-test
+    spec:
+      containers:
+        - name: test
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Pod started: $(hostname)"
+              sleep 3600
+          volumeMounts:
+            - name: shared
+              mountPath: /shared
+      volumes:
+        - name: shared
+          persistentVolumeClaim:
+            claimName: shared-data
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## POC 9 — Pod-to-Pod Communication via Service (order-service → inventory-service)
+
+1. Create pod `inventory-service` using your pushed `inventory-service` image (from Image 2 above), that mounts ConfigMap `app-config` (from POC 1) as a volume at `/etc/app/config`, container port `5678`.
+
+2. Create a **ClusterIP Service** named `inventory-service` targeting port `5678` on that pod.
+3. Create pod `order-service` using your pushed `order-service` image (from Image 3 above).
+
+4. From `order-service`: `kubectl exec order-service -- curl -s http://inventory-service:5678`
+5. Also try `kubectl exec order-service -- curl -s http://<inventory-pod-IP>:5678` — note it also works right now.
+6. Delete and recreate the `inventory-service` **pod** (keep the Service and ConfigMap mount as-is). Get its new Pod IP.
+7. Curl again using the **old Pod IP** (fails) vs the **Service name** (still works).
+
+**Expected result:** Both curls in step 4/5 return a text response including `config file APP_ENV: production`. After recreating the pod in step 6, the old Pod IP curl fails (connection refused/timeout), while `curl http://inventory-service:5678` in step 7 still succeeds and shows the same output — confirming the Service routes to whichever pod currently matches its selector, regardless of Pod IP changes.
+
+#config-inspector.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: config-inspector
+  labels:
+    app: inventory
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/inventory-service:v3
+      env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+      volumeMounts:
+        - name: app-config
+          mountPath: /etc/app/config
+  volumes:
+    - name: app-config
+      configMap:
+        name: app-config
+
+
+#inventory-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+spec:
+  type: ClusterIP
+  selector:
+    app: inventory
+  ports:
+    - port: 5678
+      targetPort: 5678
+
+
+#order-service.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: config-inspector
+  labels:
+    app: inventory
+spec:
+  containers:
+    - name: toolbox
+      image: qamre/order-service:v1
+      env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+      volumeMounts:
+        - name: app-config
+          mountPath: /etc/app/config
+  volumes:
+    - name: app-config
+      configMap:
+        name: app-config
+
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-9$ kubectl apply -f inventory-service.yaml
+service/inventory-service created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-9$ kubectl get svc
+NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+inventory-service   ClusterIP   10.109.175.115   <none>        5678/TCP   22s       ------SVC created
+kubernetes          ClusterIP   10.96.0.1        <none>        443/TCP    179m
+
+
+Node:             minikube-m02/192.168.49.3
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-9$ kubectl describe pods order-service | grep -i node
+Node:             minikube/192.168.49.2
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-9$ kubectl get pods
+NAME               READY   STATUS    RESTARTS      AGE
+config-inspector   1/1     Running   0             16s
+order-service      1/1     Running   0             45m
+pod-b              1/1     Running   1 (35m ago)   95m
+
+Solutions :- 
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-9$ kubectl exec -it  order-service -- sh
+/ # curl -s http://10.110.34.189:5678
+INVENTORY SERVICE
+==================
+APP_ENV env var: dev
+DB_USERNAME env var: <not set>
+config file APP_ENV: dev
+
+
+/ # curl -s http://inventory-service:5678
+INVENTORY SERVICE
+==================
+APP_ENV env var: dev
+DB_USERNAME env var: <not set>
+config file APP_ENV: dev
+config file APP_NAME: config-inspector/ #
+
+
+6. Delete and recreate the `inventory-service` **pod** (keep the Service and ConfigMap mount as-is). Get its new Pod IP.
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-9$ kubectl delete -f inventory-service.yaml
+service "inventory-service" deleted from default namespace
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-9$
+
+
+ #curl -s http://inventory-service:5678
+/ # curl -s http://10.110.34.189:5678
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## POC 10 — Capstone: order-service + inventory-service, All Four Resource Types
+1. ` inventory-service` pod (Image 2):
+   - mounts ConfigMap `app-config` as a volume at `/etc/app/config`, and injects `APP_ENV` as an env var
+   - mounts Secret `db-credentials` as a volume at `/etc/app/secrets`, and injects `DB_USERNAME` as an env var
+   - runs under ServiceAccount `app-sa`
+   - mounts a PVC at `/data`
+
+2. ClusterIP Service `inventory-service` targets port `5678`.
+3. `order-service` pod (Image 3) gets `INVENTORY_URL=http://inventory-service:5678` from a ConfigMap `order-config`, injected via `configMapKeyRef`.
+4. From `order-service`: `curl $INVENTORY_URL`
+5. From `inventory-service`: write a file to `/data`, then delete/recreate the `inventory-service` pod (keeping the Service, ConfigMap, Secret, PVC, and 	ServiceAccount bindings identical) and re-verify everything.
+
+**Expected result:**
+- `curl $INVENTORY_URL` from `order-service` returns a body containing `config file APP_ENV: production`, `secret file username: <username value>`, and the `APP_ENV`/`DB_USERNAME` env var lines populated.
+- `ls /var/run/secrets/kubernetes.io/serviceaccount` on `inventory-service` shows the auto-mounted SA token files.
+- The file written to `/data` before deletion is still present after `inventory-service` is recreated.
+- `order-service` requires no changes after `inventory-service` is recreated — it only ever referenced the Service name via `INVENTORY_URL`, never a Pod IP.
+
+**Deliverable:** all 3 Dockerfiles + `app.py`, all YAML files, and the exact `kubectl` commands + output that prove each requirement above.
+
+
+Deployment of point 1.
+
+#app-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: production
+
+
+lam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl apply -f app-config.yaml
+configmap/app-config created
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get configmaps
+NAME               DATA   AGE
+app-config         1      4s
+
+
+#db-credentials.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+stringData:
+  username: admin
+  password: MyPassword123
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl apply -f db-credentials.yaml
+secret/db-credentials created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get secrets
+NAME             TYPE     DATA   AGE
+db-credentials   Opaque   2      17s
+
+
+#app-sa.yaml   ---- create a service account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-sa
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl apply -f app-sa.yaml
+serviceaccount/app-sa created
+
+
+#pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl apply -f pvc.yaml
+persistentvolumeclaim/app-data created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get pvc
+NAME         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+app-data     Bound    pvc-364b1259-fcf8-45ff-921d-d2a550859d48   1Gi        RWO            standard       <unset>                 23s
+
+
+
+#inventory-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: inventory-service
+  labels:
+    app: inventory-service
+spec:
+  serviceAccountName: app-sa
+
+  containers:
+    - name: inventory
+      image: qamre/inventory-service:v3
+
+      env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+
+      volumeMounts:
+        - name: app-config-volume
+          mountPath: /etc/app/config
+
+        - name: secret-volume
+          mountPath: /etc/app/secrets
+
+        - name: data-volume
+          mountPath: /data
+
+  volumes:
+    - name: app-config-volume
+      configMap:
+        name: app-config
+
+    - name: secret-volume
+      secret:
+        secretName: db-credentials
+
+    - name: data-volume
+      persistentVolumeClaim:
+        claimName: app-data
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl apply -f inventory-pod.yaml
+pod/inventory-service created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get pod inventory-service
+NAME                READY   STATUS    RESTARTS   AGE
+inventory-service   1/1     Running   0          22s
+
+
+* Verifying configmap
+check mounted configmap /etc/app/config/APP_ENV
+productionalam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get pods
+NAME                READY   STATUS    RESTARTS      AGE
+inventory-service   1/1     Running   0             9m24s
+pod-b               1/1     Running   3 (41m ago)   6h41m
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl exec inventory-service -- cat /etc/app/config/APP_ENV
+production
+
+*check printenv
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl exec inventory-service -- printenv APP_ENV
+production
+
+
+* Verify secret
+* check secret mounte
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl exec inventory-service -- cat /etc/app/secrets/username
+admin
+
+*check secret env
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POCkubectl exec inventory-service -- printenv DB_USERNAMERNAME
+admin
+
+* check service account
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl exec inventory-service -- ls -l /var/run/secrets/kubernetes.io/se
+rviceaccount
+total 0
+lrwxrwxrwx    1 root     root            13 Aug 24 17:52 ca.crt -> ..data/ca.crt
+lrwxrwxrwx    1 root     root            16 Aug 24 17:52 namespace -> ..data/namespace
+lrwxrwxrwx    1 root     root            12 Aug 24 17:52 token -> ..data/token
+
+
+* check VPC
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl exec inventory-service -- df -h /data
+Filesystem                Size      Used Available Use% Mounted on
+/dev/sdd               1006.9G     17.4G    938.3G   2% /data
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl exec -it inventory-service -- sh
+#echo "This data must survive Pod deletion" > /data/test.txt
+#cat /data/test.txt
+This data must survive Pod deletion               ------this data will be store at pv and will be stored after pod deletion as well. 
+
+
+
+*Deployment of point 2
+#Create cluster IP service
+
+#inventory-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+spec:
+  type: ClusterIP
+
+  selector:
+    app: inventory-service
+
+  ports:
+    - port: 5678
+      targetPort: 5678
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl apply -f inventory-service.yaml
+service/inventory-service created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get svc inventory-service
+NAME                TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+inventory-service   ClusterIP   10.103.194.99   <none>        5678/TCP   20s
+
+*Deployment of point 3 :- Order service
+#order-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-config
+data:
+  INVENTORY_URL: http://inventory-service:5678
+
+#kubectl apply -f order-config.yaml
+configmap/order-config created
+
+
+Deployment of point 4:- Oreder service
+
+#order-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: order-service
+  labels:
+    app: order-service
+spec:
+  containers:
+    - name: order
+      image: qamre/order-service:v1
+
+      env:
+        - name: INVENTORY_URL
+          valueFrom:
+            configMapKeyRef:
+              name: order-config
+              key: INVENTORY_URL
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl apply -f order-pod.yaml
+pod/order-service created
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get pods order-service
+NAME            READY   STATUS    RESTARTS   AGE
+order-service   1/1     Running   0          23s
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl exec order-service -- printenv INVENTORY_URL    --- verify inventory url
+http://inventory-service:5678
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl exec -it order-service -- sh
+/ #
+/ # curl $INVENTORY_URL
+INVENTORY SERVICE
+==================
+APP_ENV env var: production
+DB_USERNAME env var: admin
+config file APP_ENV: production
+secret file password: MyPassword123
+secret file username: admin/ #
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl delete pod inventory-service
+pod "inventory-service" deleted from default namespace
+
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get configmap app-config
+NAME         DATA   AGE
+app-config   1      74m
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get secret db-credentials
+NAME             TYPE     DATA   AGE
+db-credentials   Opaque   2      71m
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get serviceaccount app-sa
+NAME     AGE
+app-sa   69m
+
+alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-10$ kubectl get pvc app-data
+NAME       STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+app-data   Bound    pvc-364b1259-fcf8-45ff-921d-d2a550859d48   1Gi        RWO            standard       <unset>                 53m
+
+
+
+
