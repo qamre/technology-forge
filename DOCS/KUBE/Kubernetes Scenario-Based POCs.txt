@@ -278,7 +278,9 @@ total 4
 **Expected result:** Both `username` and `password` appear as files under `/etc/app/secrets` with their decoded (plaintext) values. `printenv DB_USERNAME` returns the username value. `ls -l` shows the Secret volume mounted with restrictive file permissions (`0644` by default, root-owned) and backed by tmpfs rather than disk.
 
 
-#db-credentials.yaml
+Solution:-
+
+secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -290,10 +292,14 @@ stringData:
   DB_PASSWORD: admin123
 
 
-     mounts `db-credentials` as a volume at `/etc/app/secrets`
-   - injects `username` as env var `DB_USERNAME` via `secretKeyRef
+alam@DESKTOP-VK19M09:poc-3$ kubectl apply -f secret.yaml
+secret/db-credentials created
+alam@DESKTOP-VK19M09:poc-3$ kubectl get secrets
+NAME             TYPE     DATA   AGE
+db-credentials   Opaque   2      9s
 
-#secret-inspector.taml
+
+#pod-secret-inspector.yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -303,54 +309,41 @@ spec:
     - name: toolbox
       image: qamre/toolbox:v1
       env:
-        - name: DB_USERNAM
+        - name: DB_USERNAME
           valueFrom:
             secretKeyRef:
               name: db-credentials
-              key: APP_NAME
+              key: DB_USERNAME
       volumeMounts:
         - name: db-secrets
           mountPath: /etc/app/secrets
   volumes:
     - name: db-secrets
-      configMap:
-        name: db-credentials
+      secret:
+        secretName: db-credentials
 
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ ls -l
--rwxrwxrwx 1 alam alam 195 Aug 19 22:35 db-credentials.yaml
--rwxrwxrwx 1 alam alam 463 Aug 19 22:35 secret-inspector.yaml
 
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl apply -f db-credentials.yaml
-secret/db-credentials created
-
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl get secret
-NAME             TYPE     DATA   AGE
-db-credentials   Opaque   2      117s
-
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl apply -f db-credentials.yaml
-secret/db-credentials configured
-
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl apply -f secret-inspector.yaml
+lam@DESKTOP-VK19M09:poc-3$ kubectl apply -f pod-secret-inspector.yaml
 pod/secret-inspector created
+alam@DESKTOP-VK19M09:poc-3$ kubectl get pod
+NAME               READY   STATUS    RESTARTS   AGE
+secret-inspector   1/1     Running   0          35s
 
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl get pods | grep secret
-secret-inspector                   1/1     Running   0                13s
 
+#kubectl exec -it secret-inspector -- sh
 
-
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl exec secret-inspector -- cat /etc/app/secrets/username
+# cat /etc/app/secrets/DB_USERNAME
 admin
-
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl exec secret-inspector -- cat /etc/app/secrets/password
+# cat /etc/app/secrets/DB_PASSWORD
 admin123
 
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl exec secret-inspector -- printenv DB_USERNAME
-admin
 
-alam@DESKTOP-VK19M09:/mnt/c/VSCODE/K8s-POC/POC-3$ kubectl exec secret-inspector -- ls -l /etc/app/secrets
+# printenv DB_USERNAME
+admin
+ls -l /etc/app/secrets
 total 0
-lrwxrwxrwx    1 root     root            15 Aug 19 17:12 password -> ..data/password
-lrwxrwxrwx    1 root     root            15 Aug 19 17:12 username -> ..data/username
+lrwxrwxrwx    1 root     root            18 Sep  1 07:20 DB_PASSWORD -> ..data/DB_PASSWORD
+lrwxrwxrwx    1 root     root            18 Sep  1 07:20 DB_USERNAME -> ..data/DB_USERNAME
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
