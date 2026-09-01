@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rwx-test
+  namespace: poc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rwx-test
+  template:
+    metadata:
+      labels:
+        app: rwx-test
+    spec:
+      containers:
+        - name: test
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Pod started: $(hostname)"
+              sleep 3600
+          volumeMounts:
+            - name: shared
+              mountPath: /shared
+      volumes:
+        - name: shared
+          persistentVolumeClaim:
+            claimName: shared-data
+

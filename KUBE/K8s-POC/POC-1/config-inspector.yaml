@@ -12,6 +12,11 @@ spec:
             configMapKeyRef:
               name: app-config
               key: APP_ENV
+        - name: APP_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_NAME
       volumeMounts:
         - name: app-config
           mountPath: /etc/app/config
@@ -19,3 +24,4 @@ spec:
     - name: app-config
       configMap:
         name: app-config
+
