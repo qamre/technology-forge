@@ -1,4 +1,13 @@
-Q.1
+POC 1 — ConfigMap: Volume Mount + Env Var Reference
+
+1. Create ConfigMap `app-config` with keys: `APP_ENV=production`, `APP_NAME=inventory-service`.
+2. Create pod `config-inspector` (`toolbox` image), that:
+   - mounts `app-config` as a volume at `/etc/app/config`
+   - also injects `APP_ENV` as an environment variable via `configMapKeyRef`
+3. Verify:
+   - `kubectl exec config-inspector -- cat /etc/app/config/APP_ENV`
+   - `kubectl exec config-inspector -- printenv APP_ENV`
+
 
 #configmap.yaml
 apiVersion: v1
