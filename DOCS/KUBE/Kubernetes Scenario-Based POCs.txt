@@ -841,6 +841,13 @@ spec:
           persistentVolumeClaim:
             claimName: shared-data
 
+kubectl exec -n poc rwx-test-67b545d787-hr2xz -- \
+sh -c 'echo "hello from $(hostname)" > /shared/test.txt'
+
+
+kubectl exec -n poc rwx-test-67b545d787-nkr5p -- \
+cat /shared/test.txt
+
 
 
 
