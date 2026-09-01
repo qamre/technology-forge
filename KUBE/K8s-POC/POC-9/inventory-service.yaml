@@ -5,7 +5,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: inventory
+    app: inventory-service
   ports:
     - port: 5678
       targetPort: 5678

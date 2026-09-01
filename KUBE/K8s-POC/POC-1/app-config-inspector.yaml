@@ -2,12 +2,10 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: config-inspector
-  labels:
-    app: inventory
 spec:
   containers:
     - name: toolbox
-      image: qamre/inventory-service:v3
+      image: qamre/toolbox:v1
       env:
         - name: APP_ENV
           valueFrom:
@@ -17,6 +15,7 @@ spec:
       volumeMounts:
         - name: app-config
           mountPath: /etc/app/config
+
   volumes:
     - name: app-config
       configMap:
