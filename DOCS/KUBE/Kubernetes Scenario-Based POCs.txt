@@ -632,7 +632,7 @@ spec:
 
 
 
-alam@DESKTOP-VK19M09:POC-8$ cat rwx-test.yaml
+alam@DESKTOP-VK19M09:POC-8$ cat pod-test.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
