@@ -6,17 +6,11 @@ spec:
   containers:
     - name: toolbox
       image: qamre/toolbox:v1
-      env:
-        - name: APP_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: APP_NAME
       volumeMounts:
         - name: app-config
           mountPath: /etc/app/name.txt
+          subPath: APP_NAME
   volumes:
     - name: app-config
       configMap:
         name: app-config
-
