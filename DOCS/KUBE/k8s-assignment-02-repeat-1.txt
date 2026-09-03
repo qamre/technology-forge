@@ -1,0 +1,800 @@
+Que 1 →
+● Create 2 Public Docker Hub registries named
+cloudethix_master_nginx_yourname & cloudethix_release_nginx_yourname.
+
+qamre/cloudethix_master_nginx_qamre  --- 1st repository
+qamre/cloudethix_release_nginx_qamre --- 2nd repository
+
+/mnt/c/VSCODE/k8s-assignment/repeatation-1/k8s-assignemnt-02
+-----------
+
+● Clone below repository on your system.
+https://github.com/zembutsu/docker-sample-nginx.git
+
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-02$ git clone https://github.com/zembutsu/docker-sample-nginx.git
+Cloning into 'docker-sample-nginx'...
+remote: Enumerating objects: 22, done.
+remote: Counting objects: 100% (12/12), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 22 (delta 7), reused 6 (delta 6), pack-reused 10 (from 1)
+Receiving objects: 100% (22/22), done.
+Resolving deltas: 100% (7/7), done.
+
+
+----------------------
+
+● Initialize a local repository & copy the code from above repo to your local
+repository in master branch and then create below branches.
+release
+main
+hotfix
+alam@DESKTOP-VK19M09:my-docker-sample-nginx$ ls -al
+total 4
+drwxrwxrwx 1 alam alam 4096 Sep  3 17:57 .
+drwxrwxrwx 1 alam alam 4096 Sep  3 17:55 ..
+drwxrwxrwx 1 alam alam 4096 Sep  3 17:57 .git
+-rwxrwxrwx 1 alam alam   95 Sep  3 17:55 Dockerfile
+-rwxrwxrwx 1 alam alam 1084 Sep  3 17:55 LICENSE
+-rwxrwxrwx 1 alam alam   73 Sep  3 17:55 README.md
+-rwxrwxrwx 1 alam alam  286 Sep  3 17:55 default.conf
+-rwxrwxrwx 1 alam alam  103 Sep  3 17:55 index.html
+alam@DESKTOP-VK19M09:my-docker-sample-nginx$ pwd
+/mnt/c/VSCODE/k8s-assignment/repeatation-1/my-docker-sample-nginx
+
+
+
+alam@DESKTOP-VK19M09:my-docker-sample-nginx$ git branch
+  hotfix
+  main
+* master
+  release
+
+
+● Once code is copied to local repository,from master branch update the
+index.html and add word "Cloudethix Master Branch Nginx" and build the
+docker image & add meaningful tags and push to Docker Hub registry
+cloudethix_master_nginx_yourname.
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ cat index.html
+<html>
+<body>
+        <h1>Cloudethix Master Branch Nginx</h1>
+</body>
+</html>
+
+#docker build -t docker-sample-nginx-cloudethix .
+alam@DESKTOP-VK19M09:docker-sample-nginx$ docker build -t docker-sample-nginx-cloudethix .
+[+] Building 4.9s (9/9) FINISHED                                                                             docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.0s
+ => => transferring dockerfile: 132B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/nginx:alpine                                                        4.1s
+ => [auth] library/nginx:pull token for registry-1.docker.io                                                           0.0s
+ => [internal] load .dockerignore                                                                                      0.1s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/3] FROM docker.io/library/nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913  0.1s
+ => => resolve docker.io/library/nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913  0.0s
+ => [internal] load build context                                                                                      0.1s
+ => => transferring context: 491B                                                                                      0.0s
+ => CACHED [2/3] COPY default.conf /etc/nginx/conf.d/                                                                  0.0s
+ => [3/3] COPY index.html /usr/share/nginx/html/                                                                       0.1s
+ => exporting to image                                                                                                 0.4s
+ => => exporting layers                                                                                                0.1s
+ => => exporting manifest sha256:d58970bf1c5bc7d761d9da674bc626a82e38496c500fbad4a6d608c7a9ea9f4c                      0.0s
+ => => exporting config sha256:a7d357ea1938077cff2bcb03b5dc680291f6c00db4fc9dc7435bc66af52acd02                        0.0s
+ => => exporting attestation manifest sha256:f5f7b639d0acc80f07bbaf270e03f3181b0bd8718e85f3f7e9dc7de6a33792ba          0.0s
+ => => exporting manifest list sha256:5528b1c640261c02e1d7daa38adc5a1da8a73737315b5be55271a012733ac93e                 0.0s
+ => => naming to docker.io/library/docker-sample-nginx-cloudethix:latest                                               0.0s
+ => => unpacking to docker.io/library/docker-sample-nginx-cloudethix:latest 
+ 
+ 
+alam@DESKTOP-VK19M09:docker-sample-nginx$ docker images | grep sample-nginx-cloudethix:latest
+WARNING: This output is designed for human readability. For machine-readable output, please use --format.
+docker-sample-nginx-cloudethix:latest                                                                 5528b1c64026       93.4MB         26.3MB
+
+#docker tag docker-sample-nginx-cloudethix:latest qamre/cloudethix_master_nginx_qamre:v2
+lam@DESKTOP-VK19M09:docker-sample-nginx$ docker images docker-sample-nginx-cloudethix                                                                                                  i Info →   U  In Use
+IMAGE                                   ID             DISK USAGE   CONTENT SIZE   EXTRA
+docker-sample-nginx-cloudethix:latest   5528b1c64026       93.4MB         26.3MB
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ docker push qamre/cloudethix_master_nginx_qamre:v2
+The push refers to repository [docker.io/qamre/cloudethix_master_nginx_qamre]
+55afa1ecc21d: Layer already exists
+d94291c26261: Mounted from qamre/cloudethix-nginix-qamre
+0ea935727878: Mounted from qamre/cloudethix-nginix-qamre
+af376838216d: Pushed
+da4dea1b00af: Mounted from qamre/cloudethix-nginix-qamre
+fb597529c916: Mounted from qamre/cloudethix-nginix-qamre
+07ea48a44815: Mounted from qamre/cloudethix-nginix-qamre
+0d62d88506ba: Mounted from qamre/cloudethix-nginix-qamre
+8cdfe4f23778: Mounted from qamre/cloudethix-nginix-qamre
+8df1c7a9df3e: Pushed
+1ed8e39a7434: Mounted from qamre/cloudethix-nginix-qamre
+v2: digest: sha256:5528b1c640261c02e1d7daa38adc5a1da8a73737315b5be55271a012733ac93e size: 856
+----------------------
+● Also from release branch update the index.html and add word "Cloudethix
+Release Branch Nginx" and build the docker image & add meaningful tags
+and push to Docker Hub registry cloudethix_release_nginx_yourname.
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ ls -l
+total 4
+-rwxrwxrwx 1 alam alam   95 Sep  2 14:17 Dockerfile
+-rwxrwxrwx 1 alam alam 1084 Sep  2 14:17 LICENSE
+-rwxrwxrwx 1 alam alam   73 Sep  2 14:17 README.md
+-rwxrwxrwx 1 alam alam  286 Sep  2 14:17 default.conf
+-rwxrwxrwx 1 alam alam  126 Sep  2 14:43 index.html
+alam@DESKTOP-VK19M09:docker-sample-nginx$ git branch
+  hotfix
+  main
+  master
+* release
+alam@DESKTOP-VK19M09:docker-sample-nginx$ cat index.html
+<html>
+<body>
+        <h1> Cloudethix Release Branch Nginx</h1>
+</body>
+</html>
+
+#docker build -t cloudethix_release_nginx_qamre .
+
+lam@DESKTOP-VK19M09:docker-sample-nginx$ docker build -t cloudethix_release_nginx_qamre .
+[+] Building 4.4s (9/9) FINISHED                                                                             docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.0s
+ => => transferring dockerfile: 132B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/nginx:alpine                                                        3.6s
+ => [auth] library/nginx:pull token for registry-1.docker.io                                                           0.0s
+ => [internal] load .dockerignore                                                                                      0.0s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/3] FROM docker.io/library/nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913  0.1s
+ => => resolve docker.io/library/nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913  0.1s
+ => [internal] load build context                                                                                      0.1s
+ => => transferring context: 199B                                                                                      0.0s
+ => CACHED [2/3] COPY default.conf /etc/nginx/conf.d/                                                                  0.0s
+ => [3/3] COPY index.html /usr/share/nginx/html/                                                                       0.1s
+ => exporting to image                                                                                                 0.4s
+ => => exporting layers                                                                                                0.1s
+ => => exporting manifest sha256:98f84687147305738eefe18673d249eff25a6a134cee77caf36ab4038e64d148                      0.0s
+ => => exporting config sha256:d373b76f7529277b5b355dddc9010803ee24ebfbe13776ad76ab1b261d0d400a                        0.0s
+ => => exporting attestation manifest sha256:901425e25b6c3d776aa781de869ba64f2fae20dd52302e7242acbe03969d188e          0.0s
+ => => exporting manifest list sha256:db7104ebcaff6879b7cb2a62039f03af59f31ce1b465b19189a058d4a2982bb5                 0.0s
+ => => naming to docker.io/library/cloudethix_release_nginx_qamre:latest                                               0.0s
+ => => unpacking to docker.io/library/cloudethix_release_nginx_qamre:latest 
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ docker images cloudethix_release_nginx_qamre:latest
+IMAGE                                   ID             DISK USAGE   CONTENT SIZE   EXTRA		 i Info →   U  In Use
+cloudethix_release_nginx_qamre:latest   db7104ebcaff       93.4MB         26.3MB
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ docker tag cloudethix_release_nginx_qamre:latest qamre/cloudethix_release_nginx_qamre:v2
+
+#docker push qamre/cloudethix_release_nginx_qamre:v2
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ docker push qamre/cloudethix_release_nginx_qamre:v2
+The push refers to repository [docker.io/qamre/cloudethix_release_nginx_qamre]
+55afa1ecc21d: Layer already exists
+d94291c26261: Mounted from qamre/cloudethix_master_nginx_qamre
+1ed8e39a7434: Mounted from qamre/cloudethix_master_nginx_qamre
+f8e6701a0b2a: Pushed
+da4dea1b00af: Mounted from qamre/cloudethix_master_nginx_qamre
+fb597529c916: Mounted from qamre/cloudethix_master_nginx_qamre
+0d62d88506ba: Mounted from qamre/cloudethix_master_nginx_qamre
+07ea48a44815: Mounted from qamre/cloudethix_master_nginx_qamre
+0ea935727878: Mounted from qamre/cloudethix_master_nginx_qamre
+489a790cfdca: Pushed
+8cdfe4f23778: Mounted from qamre/cloudethix_master_nginx_qamre
+v2: digest: sha256:db7104ebcaff6879b7cb2a62039f03af59f31ce1b465b19189a058d4a2982bb5 size: 856
+----------------------
+
+● Once Images are copied to Docker hub registries, switch to the main branch.
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ git branch
+  hotfix
+* main
+  master
+  release
+
+----------------------
+
+● In main branch create directory named kube/clusterIP & inside kube
+directory create file named master_pod.yaml with pod name master-nginx &
+with label master-nginx & add image that you have pushed in Docker Hub
+registry cloudethix_master_nginx_yourname.
+
+alam@DESKTOP-VK19M09:kube-clusterIP$ cat master_pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: master-nginx
+  labels:
+    app: master-nginx
+spec:
+  containers:
+    - name: master-nginx
+      image: qamre/cloudethix_master_nginx_qamre:v2
+      ports:
+      - containerPort: 80
+----------------------
+
+● Also create a file release_pod.yaml with pod name release-nginx & with
+label release-nginx & add image that you have pushed in Docker Hub
+registry cloudethix_release_nginx_yourname.
+
+alam@DESKTOP-VK19M09:kube-clusterIP$ cat release_pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: release-nginx
+  labels:
+    app: release-nginx
+spec:
+  containers:
+    - name: release-nginx
+      image: qamre/cloudethix_release_nginx_qamre:v2
+      ports:
+        - containerPort: 80
+
+----------------------
+
+● Create a file called cluster_ip-service.yaml with service name
+cloudethix_clusterip and with Type clusterIP.
+
+alam@DESKTOP-VK19M09:kube-clusterIP$ cat cluster_ip-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudethix-clusterip
+spec:
+  type: ClusterIP
+  selector:
+    app: release-nginx
+  ports:
+    - port: 80
+      targetPort: 80
+----------------------
+
+● Then, select the pod with label release_nginx in service.
+Create all these three resources in your k8s cluster.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudethix-clusterip
+spec:
+  type: ClusterIP
+  selector:
+    app: release-nginx
+  ports:
+    - port: 80
+      targetPort: 80
+
+lam@DESKTOP-VK19M09:kube-clusterIP$ ls -l
+total 0
+-rwxrwxrwx 1 alam alam 177 Sep  2 15:28 cluster_ip-service.yaml
+-rwxrwxrwx 1 alam alam 226 Sep  2 16:01 master_pod.yaml
+-rwxrwxrwx 1 alam alam 230 Sep  2 16:00 release_pod.yaml
+alam@DESKTOP-VK19M09:kube-clusterIP$
+alam@DESKTOP-VK19M09:kube-clusterIP$ kubectl apply -f cluster_ip-service.yaml
+service/cloudethix-clusterip created
+alam@DESKTOP-VK19M09:kube-clusterIP$ kubectl apply -f master_pod.yaml
+pod/master-nginx created
+alam@DESKTOP-VK19M09:kube-clusterIP$ kubectl apply -f release_pod.yaml
+pod/release-nginx created
+
+alam@DESKTOP-VK19M09:kube-clusterIP$ kubectl get pod -o wide
+NAME            READY   STATUS    RESTARTS   AGE   IP                NODE       NOMINATED NODE   READINESS GATES
+master-nginx    1/1     Running   0          54s   192.168.120.120   minikube   <none>           <none>
+release-nginx   1/1     Running   0          50s   192.168.120.121   minikube   <none>           <none>
+
+alam@DESKTOP-VK19M09:kube-clusterIP$ kubectl get service
+NAME                   TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+cloudethix-clusterip   ClusterIP   10.100.157.224   <none>        80/TCP     72s
+----------------------
+
+● Now, access master_nginx pod shell & curl the master_nginx pod & check
+the result.
+
+alam@DESKTOP-VK19M09:kube-clusterIP$ kubectl exec -it release-nginx -- cat /usr/share/nginx/html/index.html
+<html>
+<body>
+        <h1>Host: <!--#echo var="Cloudethix Release Branch Nginx" --></h1>
+        Version: 1.1
+</body>
+</html>
+
+----------------------
+
+● Also try to curl release_nginx pod with DNS name & check the result.
+alam@DESKTOP-VK19M09:kube-clusterIP$ kubectl exec -it release-nginx -- sh
+/ # curl http://release-nginx
+<html>
+<body>
+        <h1>Host: (none)</h1>
+        Version: 1.1
+</body>
+</html>
+/ # exit
+----------------------
+
+● Then curl the clusterip service with its name and check the result.
+
+alam@DESKTOP-VK19M09:kube-clusterIP$ kubectl exec -it release-nginx -- curl http://cloudethix-clusterip
+<html>
+<body>
+        <h1>Host: (none)</h1>
+        Version: 1.1
+</body>
+</html>
+----------------------
+
+● Finally, create a GITHUB remote repository named
+cloudethix-k8s-yourname and push all the branches to the remote
+repository.
+
+Pushed
+----------------------
+
+● Take all screenshots and create a well formatted document.
+
+
+
+=========================================Question no 2 ==============================================================================================
+
+● In the main branch of your local repository create a directory
+kube/NodePort.
+● Create below files from below url. Please make sure you will create
+NodePort service with port 30008 instead of loadbalancer.
+https://kubernetes.io/docs/tasks/access-application-cluster/connecting-frontend-backend/.
+
+
+backend-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  selector:
+    matchLabels:
+      app: hello
+      tier: backend
+      track: stable
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: hello
+        tier: backend
+        track: stable
+    spec:
+      containers:
+        - name: hello
+          image: "gcr.io/google-samples/hello-go-gke:1.0"
+          ports:
+            - name: http
+              containerPort: 80
+
+
+backend-service.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello
+spec:
+  selector:
+    app: hello
+    tier: backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: http
+...
+
+
+frontend-deployment.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  selector:
+    matchLabels:
+      app: hello
+      tier: frontend
+      track: stable
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello
+        tier: frontend
+        track: stable
+    spec:
+      containers:
+        - name: nginx
+          image: "gcr.io/google-samples/hello-frontend:1.0"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/usr/sbin/nginx","-s","quit"]
+
+
+frontend-NodePort-service.yaml
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: hello
+    tier: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30008
+  type: NodePort
+	
+...
+
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl apply -f frontend-NodePort-service.yaml
+service/frontend created
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl apply -f backend-service.yaml
+service/hello created
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl get svc
+NAME                   TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+frontend               NodePort    10.106.143.226   <none>        80:30008/TCP   16s
+hello                  ClusterIP   10.109.231.178   <none>        80/TCP         6s
+
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl apply -f frontend-deployment.yaml
+deployment.apps/frontend created
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl apply -f backend-deployment.yaml
+deployment.apps/backend created
+
+
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl get pod
+NAME                        READY   STATUS    RESTARTS      AGE
+backend-7cdc9fcc87-4r4qx    1/1     Running   0             79s
+backend-7cdc9fcc87-dj6g7    1/1     Running   0             79s
+backend-7cdc9fcc87-qzgcl    1/1     Running   0             79s
+frontend-7db75b888d-jpqzr   1/1     Running   0             84s
+
+
+● Once files are created , create all the resources in your k8s cluster.
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl apply -f frontend-NodePort-service.yaml
+service/frontend created
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl apply -f backend-service.yaml
+service/hello created
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl get svc
+NAME                   TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+frontend               NodePort    10.106.143.226   <none>        80:30008/TCP   16s
+hello                  ClusterIP   10.109.231.178   <none>        80/TCP         6s
+
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl apply -f frontend-deployment.yaml
+deployment.apps/frontend created
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl apply -f backend-deployment.yaml
+deployment.apps/backend created
+
+
+lam@DESKTOP-VK19M09:kube-NodePort$ kubectl get pod -o wide
+NAME                        READY   STATUS    RESTARTS      AGE   IP                NODE           NOMINATED NODE   READINESS GATES
+backend-7cdc9fcc87-4r4qx    1/1     Running   0             12m   192.168.120.66    minikube       <none>           <none>
+backend-7cdc9fcc87-dj6g7    1/1     Running   0             12m   192.168.120.67    minikube       <none>           <none>
+backend-7cdc9fcc87-qzgcl    1/1     Running   0             12m   192.168.205.194   minikube-m02   <none>           <none>
+frontend-7db75b888d-jpqzr   1/1     Running   0             12m   192.168.205.193   minikube-m02   <none>           <none>
+master-nginx                1/1     Running   1 (17h ago)   19h   192.168.120.127   minikube       <none>           <none>
+release-nginx               1/1     Running   1 (17h ago)   19h   192.168.120.65    minikube       <none>           <none>
+
+alam@DESKTOP-VK19M09:kube-NodePort$ kubectl get svc -o wide
+NAME                   TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE     SELECTOR
+cloudethix-clusterip   ClusterIP   10.100.157.224   <none>        80/TCP         19h     app=release-nginx
+frontend               NodePort    10.106.143.226   <none>        80:30008/TCP   13m     app=hello,tier=frontend
+hello                  ClusterIP   10.109.231.178   <none>        80/TCP         13m     app=hello,tier=backend
+inventory-service      ClusterIP   10.101.95.148    <none>        5678/TCP       6d22h   app=inventory-service
+kubernetes             ClusterIP   10.96.0.1        <none>        443/TCP        9d      <none>
+
+● Access all public ips with port 30008 in the browser and then check the result.
+alam@DESKTOP-VK19M09:kube-NodePort$ curl http://192.168.49.2:30008/   --- 192.168.49.2 -- ip is minikube ip. it will not work in browser since minikube not allow external
+{"message":"Hello"}
+alam@DESKTOP-VK19M09:kube-NodePort$
+
+● Finally, push all the latest code to the remote repository.
+● Take all screenshots and create a well formatted document.
+=========================================Question no 3 ==============================================================================================
+
+
+Que 3 →
+● Create any 2 pods and assign them to different worker nodes with
+nodeName property.
+
+pod-worker2.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-worker2
+spec:
+  nodeName: minikube-m02
+  containers:
+    - name: nginx
+      image: nginx:latest
+      ports:
+        - containerPort: 80
+
+pod-worker3.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-worker3
+spec:
+  nodeName: minikube-m03
+  containers:
+    - name: nginx
+      image: nginx:latest
+      ports:
+        - containerPort: 80
+
+lam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl get node
+NAME           STATUS   ROLES           AGE   VERSION
+minikube       Ready    control-plane   19m   v1.35.1
+minikube-m02   Ready    <none>          19m   v1.35.1
+minikube-m03   Ready    <none>          18m   v1.35.1
+
+
+lam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl get po -o wide
+NAME          READY   STATUS              RESTARTS   AGE   IP       NODE           NOMINATED NODE   READINESS GATES
+pod-worker2   0/1     ContainerCreating   0          44s   <none>   minikube-m02   <none>           <none>
+pod-worker3   0/1     ContainerCreating   0          10s   <none>   minikube-m03   <none>           <none>
+
+
+
+
+=========================================Question no 4 ==============================================================================================
+Que 4 →
+● Label both worker nodes such as worker-0 node as cloudethix-k8s-00 &
+worker-1 node as cloudethix-k8s-01.
+
+
+kubectl label nodes minikube-m02 node-name=cloudethix-k8s-00
+kubectl label nodes minikube-m03 node-name=cloudethix-k8s-01
+
+lam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl label nodes minikube-m02 node-name=cloudethix-k8s-00
+node/minikube-m02 not labeled
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl get nodes -L node-name
+NAME           STATUS   ROLES           AGE   VERSION   NODE-NAME
+minikube       Ready    control-plane   56m   v1.35.1
+minikube-m02   Ready    <none>          56m   v1.35.1   cloudethix-k8s-00
+minikube-m03   Ready    <none>          55m   v1.35.1
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl label nodes minikube-m03 node-name=cloudethix-k8s-01
+node/minikube-m03 labeled
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl get nodes -L node-name
+NAME           STATUS   ROLES           AGE   VERSION   NODE-NAME         (node-name is important)
+minikube       Ready    control-plane   57m   v1.35.1
+minikube-m02   Ready    <none>          56m   v1.35.1   cloudethix-k8s-00
+minikube-m03   Ready    <none>          55m   v1.35.1   cloudethix-k8s-01
+
+
+● Once nodes are labeled, create pod00.yaml file and schedule the pod on
+worker-0 node with nodeSelector property. Also create one more file named pod01.yaml & schedule the pod on worker-1 node.
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl get nodes -L node-name
+NAME           STATUS   ROLES           AGE   VERSION   NODE-NAME         (node-name is important)
+minikube       Ready    control-plane   57m   v1.35.1
+minikube-m02   Ready    <none>          56m   v1.35.1   cloudethix-k8s-00   ---------- form the above question
+minikube-m03   Ready    <none>          55m   v1.35.1   cloudethix-k8s-01   ---------- from the above question
+
+Note the below pods should be listed on node-name cloudethix-k8s-00 and cloudethix-k8s-01 respectively
+
+#pod00.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod00
+  labels:
+    app: cloudethix-k8s-00
+spec:
+  nodeSelector:
+    node-name: cloudethix-k8s-00
+  containers:
+    - name: nginx
+      image: nginx:latest
+#pod01.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod01
+  labels:
+    app: cloudethix-k8s-01
+spec:
+  nodeSelector:
+    node-name: cloudethix-k8s-01
+  containers:
+    - name: nginx
+      image: nginx:latest
+	 
+lam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl get po
+NAME                READY   STATUS    RESTARTS   AGE
+pod00               1/1     Running   0          49m
+pod01               1/1     Running   0          7s
+
+See the node name 
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ kubectl get pods -o wide
+NAME                READY   STATUS    RESTARTS   AGE     IP           NODE           NOMINATED NODE   READINESS GATES
+pod00               1/1     Running   0          51m     10.244.1.4   minikube-m02   <none>           <none>
+pod01               1/1     Running   0          2m57s   10.244.2.4   minikube-m03   <none>           <none>
+
+=========================================Question no 5 ==============================================================================================
+
+Que 5 →
+● Clone the below repo locally & create DaemonSet from directory
+DaemonSet101.
+https://github.com/collabnix/kubelabs
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ git clone https://github.com/collabnix/kubelabs
+Cloning into 'kubelabs'...
+remote: Enumerating objects: 14031, done.
+remote: Counting objects: 100% (707/707), done.
+remote: Compressing objects: 100% (147/147), done.
+remote: Total 14031 (delta 637), reused 560 (delta 560), pack-reused 13324 (from 5)
+Receiving objects: 100% (14031/14031), 61.81 MiB | 1.21 MiB/s, done.
+Resolving deltas: 100% (4181/4181), done.
+Updating files: 100% (7374/7374), done.
+
+alam@DESKTOP-VK19M09:kubelabs$ cd DaemonSet101/
+alam@DESKTOP-VK19M09:DaemonSet101$ ls -l
+total 8
+-rwxrwxrwx 1 alam alam 7040 Sep  3 14:34 README.md
+-rwxrwxrwx 1 alam alam  394 Sep  3 14:34 daemonset.yml
+
+#daemonset.yml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: prometheus-daemonset
+spec:
+  selector:
+    matchLabels:
+      tier: monitoring
+      name: prometheus-exporter
+  template:
+    metadata:
+      labels:
+        tier: monitoring
+        name: prometheus-exporter
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/node-exporter
+        ports:
+        - containerPort: 80
+
+
+alam@DESKTOP-VK19M09:DaemonSet101$ kubectl apply -f  daemonset.yml
+daemonset.apps/prometheus-daemonset created
+
+alam@DESKTOP-VK19M09:DaemonSet101$ kubectl get pods
+NAME                         READY   STATUS    RESTARTS   AGE
+prometheus-daemonset-6f6m2   1/1     Running   0          47s
+prometheus-daemonset-jlm26   1/1     Running   0          47s
+prometheus-daemonset-x26kb   1/1     Running   0          47s
+
+
+"DaemonSet ensures that a copy of a specific pod runs on every eligible node in the Kubernetes cluster. 
+It is commonly used for monitoring agents, log collectors, and networking agents."
+
+Hence DaemonSet is running on all the node -- refer below description
+
+alam@DESKTOP-VK19M09:DaemonSet101$ kubectl describe pod prometheus-daemonset-6f6m2
+Name:             prometheus-daemonset-6f6m2
+Namespace:        default
+Priority:         0
+Service Account:  default
+Node:             minikube/192.168.49.2
+Start Time:       Thu, 03 Sep 2026 14:42:27 +0530
+Labels:           controller-revision-hash=548545c499
+                  name=prometheus-exporter
+                  pod-template-generation=1
+                  tier=monitoring
+				  
+
+alam@DESKTOP-VK19M09:DaemonSet101$ kubectl describe pod prometheus-daemonset-jlm26
+Name:             prometheus-daemonset-jlm26
+Namespace:        default
+Priority:         0
+Service Account:  default
+Node:             minikube-m02/192.168.49.3
+Start Time:       Thu, 03 Sep 2026 14:42:27 +0530
+Labels:           controller-revision-hash=548545c499
+                  name=prometheus-exporter
+                  pod-template-generation=1
+                  tier=monitoring
+				  
+alam@DESKTOP-VK19M09:DaemonSet101$ kubectl describe pod prometheus-daemonset-x26kb
+Name:             prometheus-daemonset-x26kb
+Namespace:        default
+Priority:         0
+Service Account:  default
+Node:             minikube-m03/192.168.49.4
+Start Time:       Thu, 03 Sep 2026 14:42:27 +0530
+Labels:           controller-revision-hash=548545c499
+                  name=prometheus-exporter
+                  pod-template-generation=1
+                  tier=monitoring
+				  
+
+=========================================Question no 6 ==============================================================================================
+
+Que 6 →
+● Create a static pod with name cloudethix-static in your k8s cluster. Refer
+below link.
+https://kubernetes.io/docs/tasks/configure-pod-container/static-po
+d/
+
+A Static Pod is a Kubernetes pod that is created and managed directly by the kubelet on a specific node, 
+instead of being managed by the Kubernetes API server through a Deployment, ReplicaSet, or DaemonSet.
+
+But with a Static Pod, you put the Pod YAML file directly into the kubelet's manifest directory, commonly:
+/etc/kubernetes/manifests/
+
+For example:
+
+/etc/kubernetes/manifests/
+#static-web.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: static-web
+  labels:
+    role: myrole
+spec:
+  containers:
+    - name: web
+      image: nginx
+      ports:
+        - name: web
+          containerPort: 80
+          protocol: TCP
+
+alam@DESKTOP-VK19M09:DaemonSet101$ kubectl get pods
+NAME                         READY   STATUS    RESTARTS   AGE
+prometheus-daemonset-6f6m2   1/1     Running   0          11m
+prometheus-daemonset-jlm26   1/1     Running   0          11m
+prometheus-daemonset-x26kb   1/1     Running   0          11m
+static-web-minikube          1/1     Running   0          66s   running static pods -- we can not delte this pod manualy, 
+it will running till we not remove the script from /etc/kubernetes/manifests/ directly file name as static-web.yaml
+alam@DESKTOP-VK19M09:DaemonSet101$
+=========================================Question no 7 ==============================================================================================
+
+Que 7 →
+● Install Kubectx & kubens in your k8s cluster.
+
+alam@DESKTOP-VK19M09:docker-sample-nginx$ git clone https://github.com/ahmetb/kubectx.git
+Cloning into 'kubectx'...
+remote: Enumerating objects: 2127, done.
+remote: Counting objects: 100% (816/816), done.
+remote: Compressing objects: 100% (224/224), done.
+remote: Total 2127 (delta 698), reused 592 (delta 592), pack-reused 1311 (from 3)
+Receiving objects: 100% (2127/2127), 1.11 MiB | 782.00 KiB/s, done.
+Resolving deltas: 100% (1244/1244), done.
+Updating files: 100% (96/96), done.
+
+
+alam@DESKTOP-VK19M09:kubectx$ pwd
+/mnt/c/VSCODE/k8s-assignment/repeatation-1/k8s-assignemnt-02/docker-sample-nginx/kubectx
+alam@DESKTOP-VK19M09:kubectx$
+alam@DESKTOP-VK19M09:kubectx$
+alam@DESKTOP-VK19M09:kubectx$
+alam@DESKTOP-VK19M09:kubectx$ kubens
+default
+kube-node-lease
+kube-public
+kube-system
+alam@DESKTOP-VK19M09:kubectx$ kube
+kubectl  kubectx  kubens
+alam@DESKTOP-VK19M09:kubectx$ kubectx
+minikube
