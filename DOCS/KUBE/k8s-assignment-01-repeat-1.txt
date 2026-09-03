@@ -1,0 +1,266 @@
+Que 2 →
+● Check the pod in all namespace with kubectl command and check the status of all the
+pods.
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  kubectl get pod --all-namespaces
+NAMESPACE              NAME                                         READY   STATUS    RESTARTS         AGE
+kube-system            calico-kube-controllers-984995b45-5vkrq      1/1     Running   7 (21h ago)      7d4h
+kube-system            calico-node-2zphq                            1/1     Running   7 (21h ago)      7d4h
+kube-system            calico-node-fl8px                            1/1     Running   7 (21h ago)      7d4h
+kube-system            coredns-7d764666f9-tc88p                     1/1     Running   10 (21h ago)     8d
+kube-system            csi-nfs-controller-85cc966848-h7lpz          5/5     Running   7 (21h ago)      22h
+kube-system            csi-nfs-node-mtmsz                           3/3     Running   3 (21h ago)      22h
+kube-system            csi-nfs-node-sk8gp                           3/3     Running   3 (21h ago)      22h
+kube-system            etcd-minikube                                1/1     Running   10 (21h ago)     8d
+kube-system            kindnet-2l8cj                                1/1     Running   10 (21h ago)     8d
+kube-system            kindnet-4jspz                                1/1     Running   9 (21h ago)      7d17h
+kube-system            kube-apiserver-minikube                      1/1     Running   10 (6h20m ago)   8d
+kube-system            kube-controller-manager-minikube             1/1     Running   10 (21h ago)     8d
+kube-system            kube-proxy-6sj6t                             1/1     Running   9 (21h ago)      7d17h
+kube-system            kube-proxy-cnzcd                             1/1     Running   10 (21h ago)     8d
+kube-system            kube-scheduler-minikube                      1/1     Running   10 (21h ago)     8d
+kube-system            metrics-server-9d74bb658-9r7nb               1/1     Running   3 (21h ago)      4d21h
+kube-system            storage-provisioner                          1/1     Running   20 (6h19m ago)   8d
+kubernetes-dashboard   dashboard-metrics-scraper-5565989548-z9lss   1/1     Running   3 (21h ago)      4d21h
+kubernetes-dashboard   kubernetes-dashboard-b84665fb8-pnpr7         1/1     Running   3 (21h ago)      4d21h
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  # 
+----------------------------------------------------------------------------------------------------------
+Que 3 →
+● Create one nginx pod on your Kubernetes cluster and then delete the same.
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  kubectl run nginx-pod --image=nginx
+pod/nginx-pod created
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  kubectl get pod nginx-pod
+NAME        READY   STATUS    RESTARTS   AGE
+nginx-pod   1/1     Running   0          17s
+----------------------------------------------------------------------------------------------------------
+Que 4 →
+● Create a yaml file for replicationcontroller and replicaset. Update the name from
+metadata and add yourname_rc and yourname_rs to both objects respectively. Once
+files are ready, deploy the objects in your K8S cluster with kubectl command.
+
+NAME                                SHORTNAMES   APIVERSION                        NAMESPACED   KIND
+replicationcontrollers              rc           v1                                true         ReplicationController
+replicasets                         rs           apps/v1                           true         ReplicaSet
+
+replicationcontrollers.yaml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: alam-rc
+spec:
+  replicas: 3
+  selector:
+    app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+			
+replicasets.yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: alam-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+			
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  kubectl apply -f replicasets.yaml
+replicaset.apps/alam-rs created
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  kubectl get pods    --- here names are in diferent name format
+NAME            READY   STATUS    RESTARTS   AGE
+alam-rs-259ds   1/1     Running   0          63s
+alam-rs-srpdl   1/1     Running   0          63s
+alam-rs-zc9ds   1/1     Running   0          63s
+nginx-pod       1/1     Running   0          12m
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  kubectl apply -f replicationcontrollers.yaml
+replicationcontroller/alam-rc created
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  kubectl get pods | grep rc
+alam-rc-6sgtd   1/1     Running   0          36s
+alam-rc-hmsd6   1/1     Running   0          36s
+alam-rc-prp2r   1/1     Running   0          36s
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Que 5 →
+● Clone https://github.com/zembutsu/docker-sample-nginx.git on your local system.
+● Initialize one repo on your local system named Cloudethix-nginix-yourname and then
+copy all the content from cloned repo to your local repo.
+● Update the index.html and add the name CloudEthiX along with Hostname. Commit the
+change to your local repository. Then create and push the code from the local repository
+to your remote repository named Cloudethix-nginix-yourname under master branch.
+● Once code is pushed, create a Docker hub public repository named
+Cloudethix-nginix-yourname.
+● Then build the docker image out of the dockerfile. Once an image is built, tag the image
+and push that image to the docker hub repo you created.
+● Create a deployment.yaml file with 2 replications in cloudethix_yourname Namespace
+and use the container image that you have pushed to your docker hub repo. Once a file
+is created, run the deployment in k8s cluster.
+● Please prepare a document along with the snap and share it across
+
+
+● Clone https://github.com/zembutsu/docker-sample-nginx.git on your local system.
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  git clone https://github.com/zembutsu/docker-sample-nginx.git
+Cloning into 'docker-sample-nginx'...
+remote: Enumerating objects: 22, done.
+remote: Counting objects: 100% (12/12), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 22 (delta 7), reused 6 (delta 6), pack-reused 10 (from 1)
+Receiving objects: 100% (22/22), done.
+Resolving deltas: 100% (7/7), done.
+alam@DESKTOP-VK19M09:k8s-assignemnt-01  #  ls -l
+total 0
+drwxrwxrwx 1 alam alam 4096 Sep  1 17:13 docker-sample-nginx
+
+
+● Initialize one repo on your local system named Cloudethix-nginix-yourname and then
+copy all the content from cloned repo to your local repo.
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  git init
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint:   git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint:   git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+
+lam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  ls -la
+total 4
+drwxrwxrwx 1 alam alam 4096 Sep  1 17:16 .
+drwxrwxrwx 1 alam alam 4096 Sep  1 17:15 ..
+drwxrwxrwx 1 alam alam 4096 Sep  1 17:16 .git
+-rwxrwxrwx 1 alam alam   95 Sep  1 17:15 Dockerfile
+-rwxrwxrwx 1 alam alam 1084 Sep  1 17:15 LICENSE
+-rwxrwxrwx 1 alam alam   73 Sep  1 17:15 README.md
+-rwxrwxrwx 1 alam alam  286 Sep  1 17:15 default.conf
+-rwxrwxrwx 1 alam alam  103 Sep  1 17:15 index.html
+
+● Update the index.html and add the name CloudEthiX along with Hostname. Commit the
+change to your local repository. Then create and push the code from the local repository
+to your remote repository named Cloudethix-nginix-yourname under master branch.
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  cat index.html
+<html>
+<body>
+<<<<<<< HEAD
+        <h1>Host: <!--#echo var="HOSTNAME CloudEthiX" --></h1>
+=======
+        <h1>Host: <!--#echo var=" CloudEthiX HOSTNAME" --></h1>
+>>>>>>> cd35bb6 (file add)
+        Version: 1.1
+</body>
+</html>
+
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  git push origin master
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 400 bytes | 10.00 KiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To github.com:qamre/cloudethix-nginix-qamre.git
+   9bbb9cb..227c1a2  master -> master
+   
+   
+● Once code is pushed, create a Docker hub public repository named
+Cloudethix-nginix-yourname.
+
+qamre/cloudethix-nginix-qamre
+
+● Then build the docker image out of the dockerfile. Once an image is built, tag the image
+and push that image to the docker hub repo you created.
+
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  docker build -t cloutethix-nginx-qamre .
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  docker build -t cloutethix-nginx-qamre .
+[+] Building 19.0s (9/9) FINISHED                                                                            docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.1s
+ => => transferring dockerfile: 132B                                                                                   0.1s
+ => [internal] load metadata for docker.io/library/nginx:alpine                                                        5.9s
+ => [auth] library/nginx:pull token for registry-1.docker.io                                                           0.0s
+ => [internal] load .dockerignore                                                                                      0.1s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/3] FROM docker.io/library/nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d591  11.7s
+ => => resolve docker.io/library/nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913  0.1s                           1.1s
+ => [internal] load build context                                                                                      0.1s
+ => => transferring context: 594B                                                                                      0.0s
+ => [2/3] COPY default.conf /etc/nginx/conf.d/                                                                         0.2s
+ => [3/3] COPY index.html /usr/share/nginx/html/                                                                       0.1s
+ => exporting to image                                                                                                 0.6s
+ => => exporting layers                                                                                                0.2s
+ => => exporting manifest sha256:eec576d299647fdc9ed3e23106cfd38e700ca991b9bc875ec00b81e3b4a69d79                      0.0s
+ => => exporting config sha256:cf8b1cff23a9f4a478948567928c60aab3db16bfe9fe983bae4d6a1bd3cbb67b                        0.0s
+ => => exporting attestation manifest sha256:0a410db61e7a4a19e61d5bb945d87825f7b4e12989d0ed86dc184ecb81207634          0.1s
+ => => exporting manifest list sha256:98c99c9e7bd4eb95bc7d2ebda5956e0d4c1431b80726afc0b2bf61d765644497                 0.0s
+ => => naming to docker.io/library/cloutethix-nginx-qamre:latest                                                       0.0s
+ => => unpacking to docker.io/library/cloutethix-nginx-qamre:latest  
+ 
+ alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  docker images | grep cloutethix-nginx-qamre
+WARNING: This output is designed for human readability. For machine-readable output, please use --format.
+cloutethix-nginx-qamre:latest                                                                         98c99c9e7bd4       93.4MB         26.3MB
+
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  docker tag cloutethix-nginx-qamre:latest qamre/cloudethix-nginix-qamre:v1
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  docker push qamre/cloudethix-nginix-qamre:v1
+The push refers to repository [docker.io/qamre/cloudethix-nginix-qamre]
+0ea935727878: Pushed
+1ed8e39a7434: Pushed
+d94291c26261: Pushed
+da4dea1b00af: Pushed
+8cdfe4f23778: Pushed
+96af99f738d0: Pushed
+322560b21362: Pushed
+0d62d88506ba: Pushed
+fb597529c916: Pushed
+07ea48a44815: Pushed
+55afa1ecc21d: Layer already exists
+v1: digest: sha256:98c99c9e7bd4eb95bc7d2ebda5956e0d4c1431b80726afc0b2bf61d765644497 size: 856
+
+Image pushed 
+
+
+● Create a deployment.yaml file with 2 replications in cloudethix_yourname Namespace
+and use the container image that you have pushed to your docker hub repo. Once a file
+is created, run the deployment in k8s cluster.
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  kubectl create namespace cloudethix-alam
+namespace/cloudethix-alam created
+
+####add deployment file code
+
+alam@DESKTOP-VK19M09:cloudethix-nginix-alam  #  kubectl apply -f deployment.yaml
+deployment.apps/cloudethix-yourname-deployment created
+
+
+
