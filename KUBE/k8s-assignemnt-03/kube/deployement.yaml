@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-webapp
+  labels: 
+    app: flask-webapp
+spec:
+  replicas: 3 
+  selector:
+    matchLabels:
+      app: flask-webapp
+  template:
+    metadata:
+      labels:
+        app: flask-webapp
+    spec: 
+      containers:
+        - name: flask-webapp
+          image: qamre/cloudethix_configmap_alam:v2
+          ports:
+            - containerPort: 80
