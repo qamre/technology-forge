@@ -541,15 +541,9 @@ flask-webapp-service   10.244.0.6:80,10.244.1.10:80,10.244.2.9:80   4m1s
 ● Once the service is created try accessing the web page in the browser as below. Notice
 the changes & take the snap.
 
-alam@DESKTOP-VK19M09:kube$ minikube service flask-webapp-service --url
-http://127.0.0.1:43201
-❗  Because you are using a Docker driver on linux, the terminal needs to be open to run it.
-
-alam@DESKTOP-VK19M09:k8s-assignemnt-02$ curl http://127.0.0.1:43201
+lam@DESKTOP-VK19M09:kube$ minikube ip
+192.168.49.2
+alam@DESKTOP-VK19M09:kube$ curl http://192.168.49.2:30008
 <html>
 <body>
-        <h1>Host: frontend-webapp-5c8c7468dc-qdpzb</h1>
-        Version: 1.1
-</body>
-</html>
   
