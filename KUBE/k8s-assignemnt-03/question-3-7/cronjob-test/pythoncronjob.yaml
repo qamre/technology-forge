@@ -1,0 +1,18 @@
+apiVersion: batch/v1
+kind: CronJob
+
+metadata:
+  name: python-helloworld
+
+spec:
+  schedule: "*/1 * * * *"
+
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: python-helloworld
+              image: qamre/cloudethix_cronjob_alam:v3
+
+          restartPolicy: OnFailure

@@ -26,4 +26,3 @@ spec:
         - name: configmap-volume
           configMap:
             name: frontend-webapp-configmap
-
