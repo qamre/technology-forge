@@ -1,0 +1,1845 @@
+CLOUDETHIX
+----------------------------------------------------Que 1------------------------------------------------------------------------------------------
+● Create 1 Public Docker Hub registry named flask_webapp_yourname.
+
+qamre/flask_webapp_alam   --- repo creadet
+
+------------------
+● Clone below repository on your system.
+https://github.com/mmumshad/simple-webapp-docker.git
+
+alam@DESKTOP-VK19M09:kubectx$ git clone https://github.com/mmumshad/simple-webapp-docker.git
+Cloning into 'simple-webapp-docker'...
+remote: Enumerating objects: 14, done.
+remote: Counting objects: 100% (7/7), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 14 (delta 3), reused 2 (delta 2), pack-reused 7 (from 1)
+Receiving objects: 100% (14/14), done.
+Resolving deltas: 100% (3/3), done.
+
+alam@DESKTOP-VK19M09:kubectx$ ls -lrth
+total 60K
+drwxrwxrwx 1 alam alam 4.0K Sep  3 15:10 simple-webapp-docker
+---------------
+● Initialize a local repository & copy the code from above repo to your local repository in
+your working branch.
+
+alam@DESKTOP-VK19M09:simple-webapp-application$ ls -l
+total 0
+drwxrwxrwx 1 alam alam 4096 Sep  3 15:17 .
+drwxrwxrwx 1 alam alam 4096 Sep  3 15:16 ..
+drwxrwxrwx 1 alam alam 4096 Sep  3 15:17 .git
+-rwxrwxrwx 1 alam alam  194 Sep  3 15:16 Dockerfile
+-rwxrwxrwx 1 alam alam  229 Sep  3 15:16 app.py
+
+alam@DESKTOP-VK19M09:simple-webapp-application$ pwd
+/mnt/c/VSCODE/k8s-assignment/repeatation-1/k8s-assignemnt-03/simple-webapp-application
+--------------------------
+
+● Once code is copied to the local repository, build the docker image & add meaningful
+tags with version 1 and push to Docker Hub registry.
+
+lam@DESKTOP-VK19M09:simple-webapp-application$ docker build -t falsk-app .
+[+] Building 227.9s (10/10) FINISHED                                                                         docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.1s
+ => => transferring dockerfile: 233B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/ubuntu:20.04                                                        6.1s
+ => [auth] library/ubuntu:pull token for registry-1.docker.io                                                          0.0s
+ => [internal] load .dockerignore                                                                                      0.1s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/4] FROM docker.io/library/ubuntu:20.04@sha256:8feb4d8ca5354def3d8fce243717141ce31e2c428701f6682bd2fafe1538821  14.6s
+ => => resolve docker.io/library/ubuntu:20.04@sha256:8feb4d8ca5354def3d8fce243717141ce31e2c428701f6682bd2fafe15388214  0.1s
+ => => sha256:13b7e930469f6d3575a320709035c6acf6f5485a76abcf03d1b92a64c09c2476 27.51MB / 27.51MB                      12.1s
+ => => extracting sha256:13b7e930469f6d3575a320709035c6acf6f5485a76abcf03d1b92a64c09c2476                              2.3s
+ => [internal] load build context                                                                                      0.1s
+ => => transferring context: 264B                                                                                      0.0s
+ => [2/4] RUN apt-get update && apt-get install -y python3 python3-pip                                               158.1s
+ => [3/4] RUN pip install flask                                                                                        7.6s
+ => [4/4] COPY app.py /opt/                                                                                            0.1s
+ => exporting to image                                                                                                41.1s
+ => => exporting layers                                                                                               32.2s
+ => => exporting manifest sha256:a9f63283bfe2667dad6582b8544cfc449ff9e15ec8dd9e2dd2b9a8edcdec6a39                      0.0s
+ => => exporting config sha256:83a0cbe3969b61de1e0642b16cfc43bc761f451198b0b47ca60a67cbb5cc7116                        0.0s
+ => => exporting attestation manifest sha256:3f8bde66db91315824b472e5f79c30ef54ee0a6f2874c658feafd0e487327f60          0.0s
+ => => exporting manifest list sha256:978b7e761c4367569457f3509bd4da822db9f19fa7cfcedaedb1e88635417f39                 0.0s
+ => => naming to docker.io/library/falsk-app:latest                                                                    0.0s
+ => => unpacking to docker.io/library/falsk-app:latest                                                                 8.6s
+
+ 1 warning found (use docker --debug to expand):
+ - JSONArgsRecommended: JSON arguments recommended for ENTRYPOINT to prevent unintended behavior related to OS signals (line9)
+ 
+ 
+ alam@DESKTOP-VK19M09:simple-webapp-application$ docker images falsk-app:latest                                                                                                      i Info →   U  In Use
+IMAGE              ID             DISK USAGE   CONTENT SIZE   EXTRA
+falsk-app:latest   978b7e761c43        680MB          177MB
+
+
+#docker tag falsk-app:latest qamre/flask_webapp_alam:v3
+
+alam@DESKTOP-VK19M09:simple-webapp-application$ docker push qamre/flask_webapp_alam:v3
+The push refers to repository [docker.io/qamre/flask_webapp_alam]
+13b7e930469f: Layer already exists
+b89f6d0e3063: Pushed
+3db4050594e7: Pushed
+e6b028edd279: Pushed
+6cd6fd731e8b: Pushed
+v3: digest: sha256:978b7e761c4367569457f3509bd4da822db9f19fa7cfcedaedb1e88635417f39 size: 856
+-----------------------
+● Once Images are pushed to Docker hub registries, create a directory named kube.
+Inside the kube directory create deployement.yaml file with 3 replication , labels app:
+flask-webapp , containerPort: 8080 and add the image that you have pushed in Docker
+Hub registry.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-webapp
+  labels:
+    app: flask-webapp
+spec:
+  replicas: 3 
+  selector:
+    matchLabels:
+      app: flask-webapp
+  template:
+    metadata:
+      labels:
+        app: flask-webapp
+    spec: 
+      containers:
+        - name: flask_webapp
+          image: qamre/flask_webapp_alam:v3
+          ports:
+            - containerPort: 8080
+
+alam@DESKTOP-VK19M09:kube$ kubectl get pod | grep flask
+flask-webapp-5d995bbf55-4gdpq   1/1     Running   0          3m49s
+flask-webapp-5d995bbf55-cx9wc   1/1     Running   0          3m49s
+flask-webapp-5d995bbf55-fcwqw   1/1     Running   0          3m49s
+
+----------------------
+● Create one service.yaml file with type nodeport & select flask-webapp with port 8080 &
+targetPort 8080 with any nodePort between range 30000-32768.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-webapp-service
+spec:
+  selector:
+    app: flask-webapp
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 30008
+  type: NodePort
+
+lam@DESKTOP-VK19M09:kube$ kubectl get svc
+NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+flask-webapp-service   NodePort    10.111.25.241   <none>        8080:30008/TCP   54s
+
+
+-----------
+● Once a service is created try accessing the web page in the browser as below. (30011 is nodeport mentioned in service.yaml).
+Meanwhile open app.py from your code to
+understand paths & output.
+
+http://master_ip:30011/
+http://master_ip:30011/how are you
+
+alam@DESKTOP-VK19M09:kube$ curl http://192.168.49.2:30008      ------------ output
+Welcome!alam
+
+---------------
+● Now , update the app.py from your code and add below route above if __name__ ==
+"__main__" line
+@app.route('/Who are you')
+def cloudethix():
+return 'Yes, I am cloudethix, and You !!!'
+
+
+alam@DESKTOP-VK19M09:simple-webapp-application$ cat app.py
+import os
+from flask import Flask
+app = Flask(__name__)
+
+@app.route("/")
+def main():
+    return "Welcome!"
+
+@app.route('/how are you')
+def hello():
+    return 'I am good, how about you?'
+
+@app.route('/Who are you')
+def cloudethix():
+return 'Yes, I am cloudethix, and You !!!'
+
+if __name__ == "__main__":
+    app.run()
+alam@DESKTOP-VK19M09:simple-webapp-application$
+
+-----------------------------------
+● Once the file is updated , rebuild the docker image & add meaningful tags with version 2
+and push to Docker Hub registry.
+
+alam@DESKTOP-VK19M09:simple-webapp-application$ docker build -t falsk-app-2 .
+[+] Building 4.6s (10/10) FINISHED                                                                           docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.1s
+ => => transferring dockerfile: 233B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/ubuntu:20.04                                                        3.7s
+ => [auth] library/ubuntu:pull token for registry-1.docker.io                                                          0.0s
+ => [internal] load .dockerignore                                                                                      0.0s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/4] FROM docker.io/library/ubuntu:20.04@sha256:8feb4d8ca5354def3d8fce243717141ce31e2c428701f6682bd2fafe15388214  0.1s
+ => => resolve docker.io/library/ubuntu:20.04@sha256:8feb4d8ca5354def3d8fce243717141ce31e2c428701f6682bd2fafe15388214  0.1s
+ => [internal] load build context                                                                                      0.0s
+ => => transferring context: 353B                                                                                      0.0s
+ => CACHED [2/4] RUN apt-get update && apt-get install -y python3 python3-pip                                          0.0s
+ => CACHED [3/4] RUN pip install flask                                                                                 0.0s
+ => [4/4] COPY app.py /opt/                                                                                            0.1s
+ => exporting to image                                                                                                 0.4s
+ => => exporting layers                                                                                                0.1s
+ => => exporting manifest sha256:402e35c589a563a4fd115dd5f797c91fe6e654927d83049e8636776ab7b011df                      0.0s
+ => => exporting config sha256:6439e94b3ef9039e0034fba8e6caa6266796e8be987a465c081ad8f62b754954                        0.0s
+ => => exporting attestation manifest sha256:2f812de84a7dffaa0b1c2376b998862f051fce566e8c903cb8a1148c41b11ebc          0.1s
+ => => exporting manifest list sha256:e8b26ee91eac5855df39b84c577356151672db20eef3f74df3f7f9f22a9ad3e7                 0.0s
+ => => naming to docker.io/library/falsk-app-2:latest                                                                  0.0s
+ => => unpacking to docker.io/library/falsk-app-2:latest                                                               0.1s
+
+ 1 warning found (use docker --debug to expand):
+ 
+ 
+alam@DESKTOP-VK19M09:simple-webapp-application$ docker images | grep falsk-app-2:latest
+WARNING: This output is designed for human readability. For machine-readable output, please use --format.
+falsk-app-2:latest                                                                                    e8b26ee91eac        680MB          177MB
+
+
+alam@DESKTOP-VK19M09:simple-webapp-application$ docker tag falsk-app-2:latest qamre/flask_webapp_alam:v4
+
+
+alam@DESKTOP-VK19M09:simple-webapp-application$ docker push qamre/flask_webapp_alam:v4
+The push refers to repository [docker.io/qamre/flask_webapp_alam]
+b89f6d0e3063: Layer already exists
+3db4050594e7: Layer already exists
+5ccf498113f2: Pushed
+7936d8424ed3: Pushed
+13b7e930469f: Layer already exists
+v4: digest: sha256:e8b26ee91eac5855df39b84c577356151672db20eef3f74df3f7f9f22a9ad3e7 size: 856
+alam@DESKTOP-VK19M09:simple-webapp-application$
+
+
+---------------------
+● Now we have the latest docker image in repo, It's time to roll out a new image. 
+Roll out the new Image with all three ways one by one.
+
+1. With kubectl set command
+2. With kubectl edit deployment
+3. With deployment.yaml file modification.
+
+
+
+earlier output: 
+alam@DESKTOP-VK19M09:kube$ curl http://192.168.49.2:30008
+Welcome!alam
+
+alam@DESKTOP-VK19M09:kube$ curl http://192.168.49.2:30008/how%20are%20you
+I am good, how about you?alam@DESKTOP-VK19M09:kube$
+
+1. With kubectl set command --- first way for the rollout
+
+deployment type =flask-webapp
+flask-webapp=qamre/flask_webapp_alam:v4   -- flask-webapp image name
+							
+					type-of-dep  cntr-name  running-ap-nm 		new-pushed-img-name					
+kubectl set image deployement/flask-webapp flask-webapp=qamre/flask_webapp_alam:v4  ---- command to set image and rollout from single command
+
+#kubectl rollout history
+#kubectl rollout status
+
+alam@DESKTOP-VK19M09:kube$ kubectl rollout status  deployment/flask-webapp
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+
+#kubectl rollout undo deployment/flask-webapp ---- if roollback needed
+
+2. With kubectl edit deployment/flask-webapp
+
+if we wanted to roolout using kubectl edit deployment 
+
+#kubectl edit deployment flask-webapp   it will open a deployment file make changes to the imge version like v4 and save the changes	
+										the rollout update will start once file has been saved.	
+
+#kubectl rollout undo deployment/flask-webapp ---- if roollback needed
+
+
+3. With deployment.yaml file modification. with this method update the image name save the changes and apply the deployment
+
+#kubectl apply -f deployement.yaml
+#deployement.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-webapp
+  labels:
+    app: flask-webapp
+spec:
+  replicas: 3 
+  selector:
+    matchLabels:
+      app: flask-webapp
+  template:
+    metadata:
+      labels:
+        app: flask-webapp
+    spec: 
+      containers:
+        - name: flask-webapp
+          image: qamre/flask_webapp_alam:v3
+          ports:
+            - containerPort: 8080
+
+There are 3 type of rollout deployment methods as below.
+1. rollout image set 
+2. rollout edit deployment/flask_webapp  --- it will open the deployment file as below make the chande and save it, it will start rollout.
+3. chnage the deployement.yaml file and save the changes and start # cubectlg apply -f deployement.yaml -- it wl start rollout 
+
+-------------------------------------------------------------
+● Run the # kubectl rollout command to check status and history.
+
+alam@DESKTOP-VK19M09:kube$ kubectl rollout status deployment/flask-webapp
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "flask-webapp" rollout to finish: 2 out of 3 new replicas have been updated...
+
+
+● Note:- Once above step 1 is done , run # kubectl rollout undo deployment command to
+rollback the change and then try a second way of rollout.
+
+# kubectl rollout undo deployment/flask-webapp
+
+alam@DESKTOP-VK19M09:~$ kubectl rollout undo deployment/flask-webapp
+Warning: resource deployments/flask-webapp was previously managed with 'kubectl apply'. Rolling back will not update the kubectl.kubernetes.io/last-applied-configuration annotation, which may cause unexpected behavior on future 'kubectl apply' operations. Consider using 'kubectl apply' with your previous configuration file instead.
+deployment.apps/flask-webapp rolled back
+
+● In the browser run all three routes & notice the changes.
+http://master_ip:30011/
+http://master_ip:30011/how are you
+http://master_ip:30011/Who are you
+
+
+alam@DESKTOP-VK19M09:~$ curl http://192.168.49.2:30008
+Welcome!alam@DESKTOP-VK19M09:~$
+
+alam@DESKTOP-VK19M09:~$ curl http://192.168.49.2:30008/how%20are%20you
+I am good, how about you?alam@DESKTOP-VK19M09:~$
+
+● Once done with all above steps , commit all the changes to the remote repository.
+Push all file to 
+
+● Capture the snap and prepare a well formatted document.
+
+
+----------------------------------------------------Que 2------------------------------------------------------------------------------------------
+● Download and install Lens & access your k8s cluster from Lens.
+Minikube Dashboard
+
+http://127.0.0.1:36569/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/#/pod?namespace=default
+-------------------
+● Check the Pod logs from Lens.
+
+* Serving Flask app '/opt/app.py'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.244.1.10:8080
+Press CTRL+C to quit
+192.168.49.2 - - [03/Sep/2026 11:51:59] "GET / HTTP/1.1" 200 -
+----------------
+
+● Check the service from lens. Also login to the pod shell using the lens.
+
+● Take snaps and delete the resources that you have just created.
+
+----------------------------------------------------Que 3------------------------------------------------------------------------------------------
+● Create 1 Public Docker Hub registry named cloudethix_configmap_yourname.
+
+Solution:-
+
+qamre/cloudethix_configmap_alam
+-----------------
+● Clone below repository on your system.
+https://github.com/zembutsu/docker-sample-nginx.git
+
+lam@DESKTOP-VK19M09:k8s-assignemnt-03$ git clone https://github.com/zembutsu/docker-sample-nginx.git
+Cloning into 'docker-sample-nginx'...
+remote: Enumerating objects: 22, done.
+remote: Counting objects: 100% (12/12), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 22 (delta 7), reused 6 (delta 6), pack-reused 10 (from 1)
+Receiving objects: 100% (22/22), done.
+Resolving deltas: 100% (7/7), done.
+---------------------------------
+
+● Initialize a local repository & copy the code from above repo to your local repository in
+the working branch.
+
+alam@DESKTOP-VK19M09:my-simple-web-docker$ ls -la
+total 4
+drwxrwxrwx 1 alam alam 4096 Sep  3 17:43 .
+drwxrwxrwx 1 alam alam 4096 Sep  3 17:39 ..
+drwxrwxrwx 1 alam alam 4096 Sep  3 17:43 .git
+-rwxrwxrwx 1 alam alam   95 Sep  3 17:41 Dockerfile
+-rwxrwxrwx 1 alam alam 1084 Sep  3 17:41 LICENSE
+-rwxrwxrwx 1 alam alam   73 Sep  3 17:41 README.md
+-rwxrwxrwx 1 alam alam  286 Sep  3 17:41 default.conf
+-rwxrwxrwx 1 alam alam  103 Sep  3 17:41 index.html
+
+
+● Once code is copied , build a docker image from docker file and add meaningful tags
+and push to docker hub repository.
+
+alam@DESKTOP-VK19M09:my-simple-web-docker$ docker build -t my-simple-web-docker .
+[+] Building 19.4s (9/9) FINISHED                                                                            docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.1s
+ => => transferring dockerfile: 132B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/nginx:alpine                                                        6.3s
+ => [auth] library/nginx:pull token for registry-1.docker.io                                                           0.0s
+ => [internal] load .dockerignore                                                                                      0.1s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/3] FROM docker.io/library/nginx:alpine@sha256:a9ae6f6d078d477e21323310498e5196cb2b7c0aedd9e07b7306612077227d7  11.7s
+ => => resolve docker.io/library/nginx:alpine@sha256:a9ae6f6d078d477e21323310498e5196cb2b7c0aedd9e07b7306612077227d7c  0.0s
+ => => sha256:6636b9fc203ce74d0b07a1d3f48cfa0151b23fa5e787232908e560673a66b553 20.52MB / 20.52MB                      10.2s
+ => => sha256:8f924cf5086c7b8a67e8b3e03b22851c1de8e11b0433c21904ef340d89e5014e 1.40kB / 1.40kB                         1.9s
+ => => sha256:51900e10fb9cfad93aa74360e5f938efcbe6d3396a380867b7561c84e5cd2daf 1.21kB / 1.21kB                         1.9s
+ => => sha256:bc98d76756163f687c200ed6114df3904623bbb5e7698b420efaf8ef3c81dfcf 404B / 404B                             1.9s
+ => => sha256:58c524ea09ced2269cb14533d95b80de9fea9532abbf171585d8acee413893f2 956B / 956B                             0.3s
+ => => sha256:af7dd138f4591521064c208da6af07f487ebc3e5b350989c0ec2017b3e5208e3 628B / 628B                             0.4s
+ => => sha256:850bf2dcecff7924b238f0b7cbae7b456e5206453b784fe6b4adfc949add274a 4.40MB / 4.40MB                         3.6s
+ => => extracting sha256:850bf2dcecff7924b238f0b7cbae7b456e5206453b784fe6b4adfc949add274a                              0.4s
+ => => extracting sha256:af7dd138f4591521064c208da6af07f487ebc3e5b350989c0ec2017b3e5208e3                              0.0s
+ => => extracting sha256:58c524ea09ced2269cb14533d95b80de9fea9532abbf171585d8acee413893f2                              0.0s
+ => => extracting sha256:bc98d76756163f687c200ed6114df3904623bbb5e7698b420efaf8ef3c81dfcf                              0.0s
+ => => extracting sha256:51900e10fb9cfad93aa74360e5f938efcbe6d3396a380867b7561c84e5cd2daf                              0.0s
+ => => extracting sha256:8f924cf5086c7b8a67e8b3e03b22851c1de8e11b0433c21904ef340d89e5014e                              0.0s
+ => => extracting sha256:6636b9fc203ce74d0b07a1d3f48cfa0151b23fa5e787232908e560673a66b553                              1.3s
+ => [internal] load build context                                                                                      0.1s
+ => => transferring context: 469B                                                                                      0.0s
+ => [2/3] COPY default.conf /etc/nginx/conf.d/                                                                         0.2s
+ => [3/3] COPY index.html /usr/share/nginx/html/                                                                       0.1s
+ => exporting to image                                                                                                 0.6s
+ => => exporting layers                                                                                                0.2s
+ => => exporting manifest sha256:3a77807b9f29a5bb5d3df5972e594fe74113ee89114a5ef532b0a210ec055381                      0.0s
+ => => exporting config sha256:30bf21de235ca12f204dae4e0c422f8c0738bd5a35b4ef03f682f2a6917669d3                        0.0s
+ => => exporting attestation manifest sha256:c5294158981dd7fb0a020471dbd901516841b1db995b6655e8f2eb0da62bd76b          0.1s
+ => => exporting manifest list sha256:25887d6bd5f2ff1cfd13565f011934d5a8d0ee52ad25a7f03ac6a36c7a6748d9                 0.0s
+ => => naming to docker.io/library/my-simple-web-docker:latest                                                         0.0s
+ => => unpacking to docker.io/library/my-simple-web-docker:latest        
+
+
+
+● Once Images are pushed to Docker hub registries, create a directory named kube.
+Inside the kube directory create deployement.yaml file with 3 replication , labels app:
+frontend-webapp , containerPort: 80 and add the image that you have pushed in Docker
+Hub registry.
+
+alam@DESKTOP-VK19M09:kube$ pwd
+/mnt/c/VSCODE/k8s-assignment/repeatation-1/k8s-assignemnt-03/kube
+
+alam@DESKTOP-VK19M09:kube$ ls -l
+total 0
+-rwxrwxrwx 1 alam alam 414 Sep  3 16:07 deployement.yaml
+-rwxrwxrwx 1 alam alam 216 Sep  3 16:07 service.yaml
+
+# deployement.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-webapp
+  labels:
+    app: frontend-webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend-webapp
+  template:
+    metadata:
+      labels:
+        app: frontend-webapp
+    spec:
+      containers:
+        - name: flask-webapp
+          image: qamre/cloudethix_configmap_alam:v2
+          ports:
+            - containerPort: 80
+
+alam@DESKTOP-VK19M09:kube$ kubectl apply -f deployement.yaml
+deployment.apps/flask-webapp created			
+
+alam@DESKTOP-VK19M09:kube$ kubectl get deployment
+NAME              READY   UP-TO-DATE   AVAILABLE   AGE
+frontend-webapp   3/3     3            3           19s
+
+alam@DESKTOP-VK19M09:kube$ kubectl get pods
+NAME                               READY   STATUS    RESTARTS        AGE
+frontend-webapp-5c8c7468dc-529mv   1/1     Running   0               104s
+frontend-webapp-5c8c7468dc-nkjxs   1/1     Running   0               104s
+frontend-webapp-5c8c7468dc-qdpzb   1/1     Running   0               104s
+
+● Create one service.yaml file with type nodeport & select frontend-webapp pod with port
+80 & targetPort 80 with any nodePort between range 30000-32768.
+
+# service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-webapp-service
+spec:
+  selector:
+    app: frontend-webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30008
+  type: NodePort
+
+alam@DESKTOP-VK19M09:kube$ kubectl apply -f service.yaml
+service/flask-webapp-service configured
+
+alam@DESKTOP-VK19M09:kube$ kubectl get svc
+NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+flask-webapp-service   NodePort    10.111.25.241   <none>        80:30008/TCP   150s
+
+alam@DESKTOP-VK19M09:kube$ kubectl get endpoints flask-webapp-service
+Warning: v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+NAME                   ENDPOINTS                                    AGE
+flask-webapp-service   10.244.0.6:80,10.244.1.10:80,10.244.2.9:80   4m1s
+
+
+● Once the service is created try accessing the web page in the browser as below. Notice
+the changes & take the snap.
+
+lam@DESKTOP-VK19M09:kube$ minikube ip
+192.168.49.2
+alam@DESKTOP-VK19M09:kube$ curl http://192.168.49.2:30008
+<html>
+<body>
+        <h1>Host: frontend-webapp-5c8c7468dc-nkjxs</h1>
+        Version: 1.1
+</body>
+</html>
+
+
+
+● Now create a configmap.yaml file with below data & delete the deployment that you have
+created.
+<html>
+<body>
+<h1> I am Cloudethix Team, Are you ?!! </h1>
+Version: 1.1
+</body>
+</html>
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-webapp-configmap
+data:
+  index.html: |
+    <html>
+    <body>
+    <h1> I am Cloudethix Team, Are you ?!! </h1>
+    Version: 1.1
+    </body>
+    </html>
+	
+alam@DESKTOP-VK19M09:kube$ kubectl apply -f configmap.yaml
+configmap/frontend-webapp-configmap created
+
+--------
+
+● Then update the same deployment.yaml file and mount configmap as volume on
+container using volumeMounts with mountPath /usr/share/nginx/html/
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-webapp
+  labels:
+    app: flask-webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flask-webapp
+  template:
+    metadata:
+      labels:
+        app: flask-webapp
+    spec:
+      containers:
+        - name: flask-webapp
+          image: qamre/cloudethix_configmap_alam:v2
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: configmap-volume
+              mountPath: /usr/share/nginx/html/
+      volumes:
+        - name: configmap-volume
+          configMap:
+            name: frontend-webapp-configmap
+
+alam@DESKTOP-VK19M09:kube$ kubectl apply -f deployement.yaml
+deployment.apps/frontend-webapp created
+
+alam@DESKTOP-VK19M09:kube$ kubectl get deployments.apps -o wide
+NAME              READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS     IMAGES                               SELECTOR
+frontend-webapp   3/3     3            3           84s   flask-webapp   qamre/cloudethix_configmap_alam:v2   app=flask-webapp
+--------------
+● Now it's time to create configmap & deployment. Once created , try to access the
+webpage in the browser & confirm that the index page is the same as we have in
+configmap.
+
+alam@DESKTOP-VK19M09:kube$ minikube ip
+192.168.49.2
+alam@DESKTOP-VK19M09:kube$ curl http://192.168.49.2:30008
+<html>
+<body>
+<h1> I am Cloudethix Team, Are you ?!! </h1>
+Version: 1.1
+</body>
+</html>
+
+Now the index page has been change form 
+
+----------------------------------------------------Que 4------------------------------------------------------------------------------------------
+● Create 1 Public Docker Hub registry named cloudethix_multicontainer_yourname.
+
+qamre/cloudethix_multicontainer_alam
+
+● Clone below repository on your system.
+https://github.com/janakiramm/Kubernetes-multi-container-pod.git
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-03$ pwd
+/mnt/c/VSCODE/technology-forge/KUBE/k8s-assignemnt-03
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-03$ git clone https://github.com/janakiramm/Kubernetes-multi-container-pod.git
+Cloning into 'Kubernetes-multi-container-pod'...
+remote: Enumerating objects: 51, done.
+remote: Total 51 (delta 0), reused 0 (delta 0), pack-reused 51 (from 1)
+Receiving objects: 100% (51/51), 88.14 KiB | 1.49 MiB/s, done.
+Resolving deltas: 100% (21/21), done.
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-03$ ls -lrth
+total 0
+drwxrwxrwx 1 alam alam 4.0K Sep  4 01:06 docker-sample-nginx
+drwxrwxrwx 1 alam alam 4.0K Sep  4 01:06 my-simple-web-docker
+drwxrwxrwx 1 alam alam 4.0K Sep  4 01:06 simple-webapp-application
+drwxrwxrwx 1 alam alam 4.0K Sep  4 01:06 simple-webapp-docker
+drwxrwxrwx 1 alam alam 4.0K Sep  4 10:37 kube
+drwxrwxrwx 1 alam alam 4.0K Sep  4 10:57 Kubernetes-multi-container-pod
+
+
+
+● Initialize a local repository & copy the code from above repo to your local repository in
+any of your working branches.
+
+alam@DESKTOP-VK19M09:k8s-assignemnt-03$ cd Kubernetes-multi-container
+alam@DESKTOP-VK19M09:Kubernetes-multi-container$ ls -al
+total 120
+drwxrwxrwx 1 alam alam   4096 Sep  4 10:59 .
+drwxrwxrwx 1 alam alam   4096 Sep  4 10:57 ..
+drwxrwxrwx 1 alam alam   4096 Sep  4 10:58 .git
+drwxrwxrwx 1 alam alam   4096 Sep  4 10:59 Build
+drwxrwxrwx 1 alam alam   4096 Sep  4 10:59 Deploy
+-rwxrwxrwx 1 alam alam   2550 Sep  4 10:59 README.md
+-rwxrwxrwx 1 alam alam 116003 Sep  4 10:59 multi-container-pod.png
+alam@DESKTOP-VK19M09:Kubernetes-multi-container$ pwd
+/mnt/c/VSCODE/technology-forge/KUBE/k8s-assignemnt-03/Kubernetes-multi-container
+
+
+● Once code is copied , go to the Build directory and build docker image from docker file
+and add meaningful tags and push to docker hub repository.
+
+alam@DESKTOP-VK19M09:Build$ docker build -t multicontainer-image .
+
+alam@DESKTOP-VK19M09:Build$ docker build -t multicontainer-image .
+[+] Building 151.3s (10/10) FINISHED                                                                         docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.1s
+ => => transferring dockerfile: 99B                                                                                    0.0s
+ => [internal] load metadata for docker.io/library/python:2.7-onbuild                                                  5.8s
+ => [auth] library/python:pull token for registry-1.docker.io                                                          0.0s
+ => [internal] load .dockerignore                                                                                      0.1s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/1] FROM docker.io/library/python:2.7-onbuild@sha256:5af88e1d011bf7e845e83813712d9f91be1a39e2ede092008fc53e0a  120.5s
+ => => resolve docker.io/library/python:2.7-onbuild@sha256:5af88e1d011bf7e845e83813712d9f91be1a39e2ede092008fc53e0a0c  0.1s
+ => => sha256:3de1c6ceef68d9f0dc989175d5e3735bc22846f22b31a211db5bd6009885f38a 130B / 130B                             0.3s
+ => => sha256:3106f7df3d1c759cc33c5d6c1aaf84c2c43913a748c801bf42f0154e6166a512 3.66MB / 3.66MB                         1.9s
+ => => sha256:4473537c621dafa8c2f6fedf1c3735b9587755d22e4beacca0a68fd9f20f7ec3 1.78MB / 1.78MB                         2.7s
+ => => sha256:56f10ddf117374aecfff5440019a5f90d8c774aa561ea25b4d3bb288a6e2ed34 14.59MB / 14.59MB                      53.0s
+ => => sha256:0c3de61682aa7de56035b5e9a9f3c37dfc01736dcc728369502d0c57940fc7b9 5.75MB / 5.75MB                         5.1s
+ => => sha256:e7428f935583e84197ae834885e62b69922f1ce7e8672a3746295555b3853fc7 131.10MB / 131.10MB                    82.1s
+ => => sha256:6ebaeb0745895220f609d4aa703e4563c39de239a2d00b85bece23a3ca3ac735 43.30MB / 43.30MB                      85.9s
+ => => sha256:46dde23c37b3419122bb597461c1a48bdea1842aaae7dbe728dfa20a9aabe11b 17.54MB / 17.54MB                      35.0s
+ => => sha256:d660b1f15b9bfb8142f50b518156f2d364d9642fe05854538b060498e2f7928d 54.25MB / 54.25MB                      58.9s
+ => => extracting sha256:d660b1f15b9bfb8142f50b518156f2d364d9642fe05854538b060498e2f7928d                              5.0s
+ => => extracting sha256:46dde23c37b3419122bb597461c1a48bdea1842aaae7dbe728dfa20a9aabe11b                              1.2s
+ => => extracting sha256:6ebaeb0745895220f609d4aa703e4563c39de239a2d00b85bece23a3ca3ac735                              4.1s
+ => => extracting sha256:e7428f935583e84197ae834885e62b69922f1ce7e8672a3746295555b3853fc7                              8.5s
+ => => extracting sha256:0c3de61682aa7de56035b5e9a9f3c37dfc01736dcc728369502d0c57940fc7b9                              0.4s
+ => => extracting sha256:56f10ddf117374aecfff5440019a5f90d8c774aa561ea25b4d3bb288a6e2ed34                              0.9s
+ => => extracting sha256:4473537c621dafa8c2f6fedf1c3735b9587755d22e4beacca0a68fd9f20f7ec3                              0.3s
+ => => extracting sha256:3106f7df3d1c759cc33c5d6c1aaf84c2c43913a748c801bf42f0154e6166a512                              0.3s
+ => => extracting sha256:3de1c6ceef68d9f0dc989175d5e3735bc22846f22b31a211db5bd6009885f38a                              0.0s
+ => [internal] load build context                                                                                      0.1s
+ => => transferring context: 2.10kB                                                                                    0.0s
+ => [2/4] ONBUILD COPY requirements.txt /usr/src/app/                                                                  0.7s
+ => [3/4] ONBUILD RUN pip install --no-cache-dir -r requirements.txt                                                  22.3s
+ => [4/4] ONBUILD COPY . /usr/src/app                                                                                  0.1s
+ => exporting to image                                                                                                 1.5s
+ => => exporting layers                                                                                                1.0s
+ => => exporting manifest sha256:4c4f094d51968e1c9d3ae9659810de69d7633e894b697a6a9417b8bc90596ae0                      0.0s
+ => => exporting config sha256:41a8bd0988d23fb0cbe03977e0163250c984c8d1a6af82554548016aa7eebeac                        0.0s
+ => => exporting attestation manifest sha256:045b4b40e9e9ac9e374a4942caa645ecf9fe801e1893f3ff2efad0bc17dd03d3          0.0s
+ => => exporting manifest list sha256:4343771000170090596ebfa4c1c1d6795ffade7402e883c30c71dad9823357c7                 0.0s
+ => => naming to docker.io/library/multicontainer-image:latest                                                         0.0s
+ => => unpacking to docker.io/library/multicontainer-image:latest  
+ 
+ 
+ alam@DESKTOP-VK19M09:Build$ docker images multicontainer-image:latest
+                                                                                                        i Info →   U  In Use
+IMAGE                         ID             DISK USAGE   CONTENT SIZE   EXTRA
+multicontainer-image:latest   434377100017       1.03GB          274MB
+
+alam@DESKTOP-VK19M09:Build$ docker tag multicontainer-image:latest qamre/cloudethix_multicontainer_alam:v3
+
+
+alam@DESKTOP-VK19M09:Build$ docker push qamre/cloudethix_multicontainer_alam:v3
+The push refers to repository [docker.io/qamre/cloudethix_multicontainer_alam]
+02982c9c3665: Pushed
+a3e0ba2f8a96: Pushed
+46dde23c37b3: Layer already exists
+6ebaeb074589: Layer already exists
+e7428f935583: Layer already exists
+0c3de61682aa: Layer already exists
+56f10ddf1173: Layer already exists
+4473537c621d: Layer already exists
+d660b1f15b9b: Layer already exists
+3106f7df3d1c: Layer already exists
+3de1c6ceef68: Layer already exists
+5f1f9a124419: Pushed
+2f947e13a771: Pushed
+v3: digest: sha256:4343771000170090596ebfa4c1c1d6795ffade7402e883c30c71dad9823357c7 size: 856
+
+
+● Now go to the deploy directory and notice the files.
+
+alam@DESKTOP-VK19M09:Deploy$ ls -lrth
+total 0
+-rwxrwxrwx 1 alam alam 325 Sep  4 10:59 db-pod.yml
+-rwxrwxrwx 1 alam alam 203 Sep  4 10:59 db-svc.yml
+-rwxrwxrwx 1 alam alam 467 Sep  4 10:59 web-pod-1.yml
+-rwxrwxrwx 1 alam alam 644 Sep  4 10:59 web-rc.yml
+-rwxrwxrwx 1 alam alam 218 Sep  4 10:59 web-svc.yml
+-rwxrwxrwx 1 alam alam 467 Sep  4 10:59 web-pod-2.yml
+
+alam@DESKTOP-VK19M09:Deploy$ pwd
+/mnt/c/VSCODE/technology-forge/KUBE/k8s-assignemnt-03/Kubernetes-multi-container/Deploy
+
+
+● Here, web-pod-1.yml file will create the pod with two containers (Multi container). Take a
+note of lables , name of containers and ports. Also, please make sure you will update the
+python container image that you have pushed to your docker registry.
+
+alam@DESKTOP-VK19M09:Deploy$ cat web-pod-1.yml
+web-pod-1.yml
+apiVersion: "v1"
+kind: Pod
+metadata:
+  name: web1
+  labels:
+    name: web
+    app: demo
+spec:
+  containers:
+    - name: redis
+      image: qamre/cloudethix_multicontainer_alam:v3
+      ports:
+        - containerPort: 6379
+          name: redis
+          protocol: TCP
+    - name: python
+      image: janakiramm/py-red
+      env:
+        - name: "REDIS_HOST"
+          value: "localhost"
+      ports:
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl apply -f web-pod-1.yml
+pod/web1 created
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl get pod web1
+NAME   READY   STATUS    RESTARTS   AGE
+web1   2/2     Running   0          33s           
+
+
+● Now, open web-svc.yml file and notice service Type , selectors & targetPort. Apply the
+file.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  labels:
+    name: web
+    app: demo
+spec:
+  selector:
+    name: web 
+  type: NodePort
+  ports:
+   - port: 80
+     name: http
+     targetPort: 5000
+     protocol: TCP
+	
+alam@DESKTOP-VK19M09:Deploy$ kubectl apply -f web-svc.yml
+service/web created
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl get svc
+NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+web                    NodePort    10.103.105.63   <none>        80:31590/TCP   17s
+
+
+● Now open db-pod.yml & notice the lables , name , Image, containerPort and apply the
+file.
+
+apiVersion: "v1"
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    name: mysql
+    app: demo
+spec:
+  containers:
+    - name: mysql
+      image: mysql:5.7.25
+      ports:
+        - containerPort: 3306         
+          protocol: TCP
+      env: 
+        - 
+          name: "MYSQL_ROOT_PASSWORD"
+          value: "password"
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl apply -f db-pod.yml
+pod/mysql created
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl get pod mysql
+NAME    READY   STATUS    RESTARTS   AGE
+mysql   1/1     Running   0          60s
+
+
+
+● Now open the db-svc.yml file and notice service Type , selectors & targetPort. Apply the
+file.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    name: mysql
+    app: demo  
+spec:
+  ports:
+  - port: 3306
+    name: mysql
+    targetPort: 3306
+  selector:
+    name: mysql
+    app: demo
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl apply -f db-svc.yml
+service/mysql created
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl get svc mysql
+NAME    TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+mysql   ClusterIP   10.97.172.11   <none>        3306/TCP   43s
+
+
+● Once above files are applied , Check that the Pods and Services are created using
+command line or lens.
+
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl get svc mysql web
+NAME    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+mysql   ClusterIP   10.97.172.11    <none>        3306/TCP       74s
+web     NodePort    10.103.105.63   <none>        80:31590/TCP   6m58s
+
+alam@DESKTOP-VK19M09:Deploy$ kubectl get pod web1 mysql
+NAME    READY   STATUS    RESTARTS   AGE
+web1    2/2     Running   0          93s
+mysql   1/1     Running   0          18m
+
+● Now , from the command line run below urls & notice the changes.
+# curl http://$NODE_IP:$NODE_PORT/init
+Initialize the database with sample schema
+
+curl http://10.103.105.63:31590/init
+
+alam@DESKTOP-VK19M09:Deploy$ curl http://192.168.49.2:31590/init
+DB Init donealam
+
+
+● Now it's time to Insert some sample data. Make sure you will use correct
+$NODE_IP:$NODE_PORT
+
+
+# curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "1",
+"user":"John Doe"}' http://$NODE_IP:$NODE_PORT/users/add
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "1",
+"user":"John Doe"}' http://192.168.49.2:31590/users/add
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "1",
+"user":"John Doe"}' http://192.168.49.2:31590/users/add
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 5
+Server: Werkzeug/1.0.1 Python/2.7.15
+Date: Fri, 04 Sep 2026 06:39:06 GMT
+
+
+
+# curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "2",
+"user":"Jane Doe"}' http://$NODE_IP:$NODE_PORT/users/add
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "2",
+"user":"Jane Doe"}' http://192.168.49.2:31590/users/add
+
+Addedalam@DESKTOP-VK19M09:Depcurl -i -H "Content-Type: application/json" -X POST -d '{"uid": "2", "2",
+"user":"Jane Doe"}' http://192.168.49.2:31590/users/add
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 5
+Server: Werkzeug/1.0.1 Python/2.7.15
+Date: Fri, 04 Sep 2026 06:41:39 GMT
+
+
+
+# curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "3",
+"user":"Bill Colls"}' http://$NODE_IP:$NODE_PORT/users/add
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "3",
+"user":"Bill Colls"}' http://192.168.49.2:31590/users/add
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "3", "3",
+"user":"Bill Colls"}' http://192.168.49.2:31590/users/add
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 5
+Server: Werkzeug/1.0.1 Python/2.7.15
+Date: Fri, 04 Sep 2026 06:42:21 GMT
+
+
+
+# curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "4",
+"user":"Mike Taylor"}' http://$NODE_IP:$NODE_PORT/users/add
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "4",
+"user":"Mike Taylor"}' http://192.168.49.2:31590/users/add
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "4", "4",
+"user":"Mike Taylor"}' http://192.168.49.2:31590/users/add
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 5
+Server: Werkzeug/1.0.1 Python/2.7.15
+Date: Fri, 04 Sep 2026 06:43:28 GMT
+
+
+● Now access the data that we have added to database using below command.
+# curl http://$NODE_IP:$NODE_PORT/users/1
+
+curl http://192.168.49.2:31590/users/1
+
+# curl http://192.168.49.2:31590/users/1
+John Doe
+# :curl http://192.168.49.2:31590/users/2
+Jane Doe
+
+# curl http://192.168.49.2:31590/users/3
+Bill Colls
+
+# Deploy$ curl http://192.168.49.2:31590/users/4
+Mike Taylor
+
+
+● The second time you access the data, it appends '(c)' indicating that it is pulled from the
+Redis cache.
+
+# curl http://192.168.49.2:31590/users/1
+John Doe(c)
+# curl http://192.168.49.2:31590/users/2
+Jane Doe(c)
+# curl http://192.168.49.2:31590/users/3
+Bill Colls(c)
+# curl http://192.168.49.2:31590/users/4
+Mike Taylor(c)
+
+
+
+● Also, try to access mysql shell i.e db pod & run select * from the users table. check
+app.py for DB related information.
+
+# kubectl exec -it mysql -- mysql -u root -psql -u root -p
+Enter password:
+
+# kubectl exec -it mysql -- mysql -u root -p
+
+Enter password:
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 15
+Server version: 5.7.25 MySQL Community Server (GPL)
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> 
+
+mysql> USE USERDB
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> select * from users;
++------+-------------+
+| ID   | USER        |
++------+-------------+
+|    1 | John Doe    |
+|    2 | Jane Doe    |
+|    3 | Bill Colls  |
+|    4 | Mike Taylor |
++------+-------------+
+4 rows in set (0.00 sec)
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "4",
+"user":"Mike Taylor"}' http://$NODE_IP:$NODE_PORT/users/add
+
+mysql> select * from users;
++------+-------------+
+| ID   | USER        |
++------+-------------+
+|    1 | John Doe    |
+|    2 | Jane Doe    |
+|    3 | Bill Colls  |
+|    4 | Mike Taylor |
++------+-------------+
+
+This data is beign fetch from we added to the table from the commnad to users table
+
+
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "4",
+"user":"Mike Taylor"}' http://$NODE_IP:$NODE_PORT/users/add
+
+● Prepare proper documentation in brief & write start to end flow. Refer below link if you
+face any issues. 
+
+https://github.com/janakiramm/Kubernetes-multi-container-pod
+----------------------------------------------------Que 5------------------------------------------------------------------------------------------
+● Create 1 Public Docker Hub registry named cloudethix_Initcontainer_yourname.
+
+qamre/cloudethix_initcontainer_alam
+
+
+
+● Clone below repository on your system.
+https://github.com/janakiramm/simpleapp.git
+
+# git clone https://github.com/janakiramm/simpleapp.git
+Cloning into 'simpleapp'...
+remote: Enumerating objects: 47, done.
+remote: Total 47 (delta 0), reused 0 (delta 0), pack-reused 47 (from 1)
+Receiving objects: 100% (47/47), 8.20 KiB | 226.00 KiB/s, done.
+Resolving deltas: 100% (9/9), done.
+
+
+
+● Initialize a local repository & copy the code from above repo to your local repository in
+any of your working branch.
+
+# mkdir my-simpleapp
+# cd my-simple
+
+# my-simpleapp$ git init
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint:   git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint:   git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+Initialized empty Git repository in /mnt/c/VSCODE/k8s-assignment/repeatation-1/k8s-assignemnt-03/my-simpleapp/.git/
+
+
+
+
+● Once code is copied , go to the Build directory and build docker image from docker file
+and add meaningful tags and push to docker hub repository.
+
+#my-simpleapp$ cat Dockerfile
+FROM nginx
+
+COPY wrapper.sh /
+
+COPY html /usr/share/nginx/html
+
+CMD ["./wrapper.sh"]
+
+
+# docker build -t my-simpleapp-container .
+[+] Building 1.1s (8/8) FINISHED                                                                             docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.1s
+ => => transferring dockerfile: 122B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/nginx:latest                                                        0.1s
+ => [internal] load .dockerignore                                                                                      0.1s
+ => => transferring context: 2B                                                                                        0.0s
+ => CACHED [1/3] FROM docker.io/library/nginx:latest@sha256:8541484afbc9c8a5a8a99b379568ebbc957f658583ec9448fc4310422  0.1s
+ => => resolve docker.io/library/nginx:latest@sha256:8541484afbc9c8a5a8a99b379568ebbc957f658583ec9448fc43104229c03cf8  0.0s
+ => [internal] load build context                                                                                      0.1s
+ => => transferring context: 785B                                                                                      0.0s
+ => [2/3] COPY wrapper.sh /                                                                                            0.1s
+ => [3/3] COPY html /usr/share/nginx/html                                                                              0.1s
+ => exporting to image                                                                                                 0.5s
+ => => exporting layers                                                                                                0.2s
+ => => exporting manifest sha256:c29e266635a81fcfaef040cfb5c6ad3c3edcf8e8720ae4c949711efd8a764f22                      0.0s
+ => => exporting config sha256:750f265da0c1c7d5390e8aa4e9b04c45f0f4d3cd285252f8a12638b6566295cb                        0.0s
+ => => exporting attestation manifest sha256:868249ade7adfaf50e29569064c17534b0fb4c6850bd7dec7585f0936b61a695          0.0s
+ => => exporting manifest list sha256:6448d6c2a63ffab75cb767080d65872613fe217ab803ece03d0f44b482f98aee                 0.0s
+ => => naming to docker.io/library/my-simpleapp-container:latest                                                       0.0s
+ => => unpacking to docker.io/library/my-simpleapp-container:latest
+ 
+
+# docker images my-simpleapp-container:latest                                                                                         i Info →   U  In Use
+IMAGE                           ID             DISK USAGE   CONTENT SIZE   EXTRA
+my-simpleapp-container:latest   6448d6c2a63f        238MB         63.1MB
+
+
+# docker tag my-simpleapp-container:latest qamre/cloudethix_initcontainer_alam:v2
+
+
+# docker push qamre/cloudethix_initcontainer_alam:v2
+The push refers to repository [docker.io/qamre/cloudethix_initcontainer_alam]
+26c307b5e35a: Mounted from qamre/three-tier-docker-compose-frontend
+3c55dc422a81: Mounted from qamre/three-tier-docker-compose-frontend
+b8b80b9bc028: Mounted from qamre/three-tier-docker-compose-frontend
+5a4222b844e8: Mounted from qamre/three-tier-docker-compose-frontend
+de930cb55182: Pushed
+6c8a7891d991: Pushed
+68486615c874: Pushed
+d84ae7b21412: Mounted from qamre/three-tier-docker-compose-frontend
+c0df8d325117: Mounted from qamre/three-tier-docker-compose-frontend
+f5de6e85ac74: Mounted from qamre/three-tier-docker-compose-frontend
+v2: digest: sha256:6448d6c2a63ffab75cb767080d65872613fe217ab803ece03d0f44b482f98aee size: 856
+
+pussher to :- qamre/cloudethix_initcontainer_alam:v2
+
+
+● Once Images are pushed to Docker hub registries, create a directory named kube.
+Inside the kube directory create deployement.yaml file with 3 replication , label app:
+simpleapp-webapp , containerPort: 80 and add the image that you have pushed in
+Docker Hub registry.
+
+#deployement.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simpleapp-webapp
+  labels:
+    app: simpleapp-webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: simpleapp-webapp
+  template:
+    metadata:
+      labels:
+        app: simpleapp-webapp
+    spec:
+      containers:
+        - name: simpleapp-webapp
+          image: qamre/cloudethix_initcontainer_alam:V1
+          ports:
+            - containerPort: 80
+
+alam@DESKTOP-VK19M09:kube-q-5$ kubectl apply -f deployement.yaml
+deployment.apps/simpleapp-webapp created
+
+
+● Create one service.yaml file with type nodeport & select simpleapp-webapp pod with port
+80 & targetPort 80 with any nodePort between range 30000-32768.
+
+#service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: simpleapp-webapp-service
+spec:
+  type: NodePort
+  selector:
+    app: simpleapp-webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+	  
+alam@DESKTOP-VK19M09:kube-q-5$ kubectl get svc
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+simpleapp-webapp-service   NodePort    10.107.176.146   <none>        80:30080/TCP   4s
+
+● Open the webpage in the browser and notice the changes and capture the snap.
+
+lam@DESKTOP-VK19M09:kube-q-5$ curl http://192.168.49.2:30080
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sample Deployment</title>
+  <style>
+    body {
+      color: #ffffff;
+      background-color: blue;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+
+    h1 {
+      font-size: 500%;
+      font-weight: normal;
+      margin-bottom: 0;
+    }
+
+    h2 {
+      font-size: 200%;
+      font-weight: normal;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div align="center">
+    <h1>Welcome to V1 of the web application</h1>
+    <h2>This application will be deployed on Kubernetes.</h2>
+  </div>
+</body>
+</html>
+
+
+
+● Then delete the deployment that you have just created.
+
+alam@DESKTOP-VK19M09:kube-q-5$ kubectl get deployments.apps
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+frontend-webapp    3/3     3            3           4h48m
+simpleapp-webapp   3/3     3            3           10m 
+
+alam@DESKTOP-VK19M09:kube-q-5$ kubectl delete -f deployement.yaml
+deployment.apps "simpleapp-webapp" deleted from default namespace
+
+
+● Update the deployment.yaml file and add volumeMounts with mountPath
+/usr/share/nginx/html from emptyDir: {} volume.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simpleapp-webapp
+  labels:
+    app: simpleapp-webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: simpleapp-webapp
+  template:
+    metadata:
+      labels:
+        app: simpleapp-webapp
+    spec:
+      containers:
+        - name: simpleapp-webapp
+          image: qamre/cloudethix_initcontainer_alam:V1
+          ports:
+            - containerPort: 80
+          volumeMount:
+            name: web-content
+            mountpath: /usr/share/nginx/html
+      volumes:
+        name: web-content
+        emptyDir: {}
+
+
+● Once above changes are added, add initContainers block with below parameters. Also
+add volumeMounts for Init Container with mountPath "/work-dir" from emptyDir: {}
+volume.
+initContainers:
+
+- name: install
+image: busybox:1.28
+command:
+- wget
+- "-O"
+- "/work-dir/index.html"
+- http://info.cern.ch
+volumeMounts:
+- name: workdir
+mountPath: "/work-dir"
+
+
+# cat deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simpleapp-webapp
+  labels:
+    app: simpleapp-webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: simpleapp-webapp
+  template:
+    metadata:
+      labels:
+        app: simpleapp-webapp
+    spec:
+      initContainers:
+        - name: install
+          image: busybox:1.28
+          command:
+            - wget
+            - "-O"
+            - "/work-dir/index.html"
+            - "http://info.cern.ch"
+          volumeMounts:
+            - name: workdir
+              mountPath: "/work-dir"
+
+      containers:
+        - name: simpleapp-webapp
+          image: qamre/cloudethix_initcontainer_alam:V1
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: workdir
+              mountPath: "/usr/share/nginx/html"
+
+      volumes:
+        - name: workdir
+          emptyDir: {}
+
+
+● Add volumes with emptyDir: {} in deployment.yaml file.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simpleapp-webapp
+  labels:
+    app: simpleapp-webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: simpleapp-webapp
+  template:
+    metadata:
+      labels:
+        app: simpleapp-webapp
+    spec:
+      volumes:
+        - name: workdir
+          emptyDir: {}
+
+      initContainers:
+        - name: install
+          image: busybox:1.28
+          command:
+            - wget
+            - "-O"
+            - "/work-dir/index.html"
+            - "http://info.cern.ch"
+          volumeMounts:
+            - name: workdir
+              mountPath: "/work-dir"
+
+      containers:
+        - name: simpleapp-webapp
+          image: qamre/cloudethix_initcontainer_alam:V1
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: workdir
+              mountPath: "/usr/share/nginx/html"
+
+
+● Once the deployment.yaml file is ready, create the deployment & access the page in the
+browser and notice the changes.
+
+alam@DESKTOP-VK19M09:kube-q-5$ kubectl apply -f deployement.yaml
+deployment.apps/simpleapp-webapp created
+
+alam@DESKTOP-VK19M09:kube-q-5$ kubectl get pod
+NAME                                READY   STATUS    RESTARTS        AGE
+simpleapp-webapp-867d489d9b-2j6rs   1/1     Running   0               19s
+simpleapp-webapp-867d489d9b-879dp   1/1     Running   0               19s
+simpleapp-webapp-867d489d9b-q6x8z   1/1     Running   0               19s
+
+alam@DESKTOP-VK19M09:kube-q-5$ curl http://192.168.49.2:30080
+<html><head></head><body><header>
+<title>http://info.cern.ch</title>
+</header>
+
+<h1>http://info.cern.ch - home of the first website</h1>
+<p>From here you can:</p>
+<ul>
+<li><a href="http://info.cern.ch/hypertext/WWW/TheProject.html">Browse the first website</a></li>
+<li><a href="http://line-mode.cern.ch/www/hypertext/WWW/TheProject.html">Browse the first website using the line-mode browser simulator</a></li>
+<li><a href="http://home.web.cern.ch/topics/birth-web">Learn about the birth of the web</a></li>
+<li><a href="http://home.web.cern.ch/about">Learn about CERN, the physics laboratory where the web was born</a></li>
+</ul>
+</body></html>
+
+● Prepare a well formatted document and write your understanding step by step.
+----------------------------------------------------Que 6------------------------------------------------------------------------------------------
+● Create 1 Public Docker Hub registry named cloudethix_hpa_yourname.
+
+qamre/cloudethix_hpa_alam
+
+● Clone below repository on your system.
+
+https://github.com/vivekamin/kubernetes-hpa-example.git
+
+alam@DESKTOP-VK19M09:question-6$ git clone https://github.com/vivekamin/kubernetes-hpa-example.git
+Cloning into 'kubernetes-hpa-example'...
+remote: Enumerating objects: 26, done.
+remote: Total 26 (delta 0), reused 0 (delta 0), pack-reused 26 (from 1)
+Receiving objects: 100% (26/26), done.
+Resolving deltas: 100% (9/9), done.
+
+
+● Initialize a local repository & copy the code from above repo to your local repository in
+any of your working branch.
+
+alam@DESKTOP-VK19M09:question-6$ mkdir kubernetes-hpa
+alam@DESKTOP-VK19M09:question-6$ cd kubernetes-hpa
+
+alam@DESKTOP-VK19M09:kubernetes-hpa$ git init
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint:   git config --global init.defaultBranch <name>
+
+alam@DESKTOP-VK19M09:kubernetes-hpa$ ls -al
+total 0
+drwxrwxrwx 1 alam alam 4096 Sep  4 23:21 .
+drwxrwxrwx 1 alam alam 4096 Sep  4 23:21 ..
+drwxrwxrwx 1 alam alam 4096 Sep  4 23:21 .git
+
+/mnt/c/VSCODE/k8s-assignment/repeatation-1/k8s-assignemnt-03/question-6/kubernetes-hpa
+
+alam@DESKTOP-VK19M09:kubernetes-hpa$ ls -l
+total 4
+-rwxrwxrwx 1 alam alam  127 Sep  4 23:24 Dockerfile
+-rwxrwxrwx 1 alam alam 2788 Sep  4 23:24 README.md
+drwxrwxrwx 1 alam alam 4096 Sep  4 23:24 k8s
+-rwxrwxrwx 1 alam alam  272 Sep  4 23:24 package.json
+drwxrwxrwx 1 alam alam 4096 Sep  4 23:24 src
+
+● Once code is copied , build a docker image from the docker file and add meaningful tags
+and push to the docker hub repository.
+
+alam@DESKTOP-VK19M09:kubernetes-hpa$ docker build -t hippa-image .
+[+] Building 12.3s (11/11) FINISHED                                                                          docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.1s
+ => => transferring dockerfile: 164B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/node:8.12.0-alpine                                                  2.7s
+ => [auth] library/node:pull token for registry-1.docker.io                                                            0.0s
+ => [internal] load .dockerignore                                                                                      0.1s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/5] FROM docker.io/library/node:8.12.0-alpine@sha256:d75742c5fd41261113ed4706f961a21238db84648c825a5126ada373c3  6.0s
+ => => resolve docker.io/library/node:8.12.0-alpine@sha256:d75742c5fd41261113ed4706f961a21238db84648c825a5126ada373c3  0.1s
+ => => sha256:e35f88fcc25962e9894d7e7da2b79ec9ce1b503ef2fe0e800bad87bcb2438319 1.08MB / 1.08MB                         0.5s
+ => => sha256:eeb7d76f44e71e809d68e84491576534c80dea0b607501e1f476b6949124d646 18.82MB / 18.82MB                       3.0s
+ => => sha256:4fe2ade4980c2dda4fc95858ebb981489baec8c1e4bd282ab1c3560be8ff9bde 2.21MB / 2.21MB                         2.0s
+ => => extracting sha256:4fe2ade4980c2dda4fc95858ebb981489baec8c1e4bd282ab1c3560be8ff9bde                              0.3s
+ => => extracting sha256:eeb7d76f44e71e809d68e84491576534c80dea0b607501e1f476b6949124d646                              2.6s
+ => => extracting sha256:e35f88fcc25962e9894d7e7da2b79ec9ce1b503ef2fe0e800bad87bcb2438319                              0.1s
+ => [internal] load build context                                                                                      0.3s
+ => => transferring context: 32.38kB                                                                                   0.3s
+ => [2/5] RUN mkdir -p /usr/src/app                                                                                    0.7s
+ => [3/5] WORKDIR /usr/src/app                                                                                         0.1s
+ => [4/5] COPY . /usr/src/app                                                                                          0.1s
+ => [5/5] RUN npm install                                                                                              1.8s
+ => exporting to image                                                                                                 0.6s
+ => => exporting layers                                                                                                0.3s
+ => => exporting manifest sha256:acc13d55ae42676d82f2d0a6b6124d18f538319272af2e1221e21710c64a2aaf                      0.0s
+ => => exporting config sha256:d02fe056266d293c537b7ff0ff7f927e793e6e8e4ae52ab571ad664d5a40d525                        0.0s
+ => => exporting attestation manifest sha256:6eb333172aac7f3206da8b2aa26b4416b71397cd5f81bc4b4ea196013f9c5c56          0.0s
+ => => exporting manifest list sha256:987f0d57514ce611526b44d065409f3f0aeee1cdef20ac81b9663ccbf9a0e724                 0.0s
+ => => naming to docker.io/library/hippa-image:latest                                                                  0.0s
+ => => unpacking to docker.io/library/hippa-image:latest  
+ 
+ alam@DESKTOP-VK19M09:kubernetes-hpa$ docker images hippa-image:latest
+                                                                                                        i Info →   U  In Use
+IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+hippa-image:latest   987f0d57514c        101MB         22.1MB
+alam@DESKTOP-VK19M09:kubernetes-hpa$ docker tag hippa-image:latest qamre/cloudethix_hpa_alam:v2
+alam@DESKTOP-VK19M09:kubernetes-hpa$ docker push qamre/cloudethix_hpa_alam:v2
+The push refers to repository [docker.io/qamre/cloudethix_hpa_alam]
+1dd81045dac6: Pushed
+4fe2ade4980c: Layer already exists
+2470847158de: Pushed
+ef46b2326c4f: Pushed
+eeb7d76f44e7: Layer already exists
+e35f88fcc259: Layer already exists
+733b45296aca: Pushed
+4f4fb700ef54: Mounted from library/httpd
+v2: digest: sha256:987f0d57514ce611526b44d065409f3f0aeee1cdef20ac81b9663ccbf9a0e724 size: 856
+ 
+
+● Once the image is pushed, go to k8s directory and update deployment.yaml file with
+image name from your repo. And then create it.
+
+#deployment.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-example
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: node-example
+
+  template:
+    metadata:
+      labels:
+        app: node-example
+
+    spec:
+      containers:
+        - name: node-example
+          image: qamre/cloudethix_hpa_alam:v2
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              cpu: "0.5"
+            requests:
+              cpu: "0.25"
+
+			  
+			  
+lam@DESKTOP-VK19M09:k8s$ kubectl get deployments.apps
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+frontend-webapp    3/3     3            3           13h
+node-example       0/1     1            0           12s
+simpleapp-webapp   3/3     3            3           19m
+alam@DESKTOP-VK19M09:k8s$
+
+● Open service.yml and change the type to nodePort and apply the same.
+
+alam@DESKTOP-VK19M09:k8s$ cat service.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-example
+  labels:
+    app: node-example
+spec:
+  selector:
+    app: node-example
+  ports:
+  - port: 3000
+    protocol: TCP
+    nodePort: 30001
+  type: NodePort
+  
+alam@DESKTOP-VK19M09:k8s$ kubectl apply -f service.yml
+service/node-example created
+
+alam@DESKTOP-VK19M09:k8s$ kubectl get svc | grep node-example
+node-example               NodePort    10.102.146.162   <none>        3000:30001/TCP   52s
+alam@DESKTOP-VK19M09:k8s$
+
+● Open the HPA.yaml file, notice it and then apply the same.
+
+alam@DESKTOP-VK19M09:k8s$ cat hpa.yml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  annotations:
+  name: node-example
+  namespace: default
+spec:
+  maxReplicas: 4
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: extensions/v1
+    kind: Deployment
+    name: node-example
+
+alam@DESKTOP-VK19M09:k8s$ kubectl apply -f  hpa.yml
+horizontalpodautoscaler.autoscaling/node-example created
+
+alam@DESKTOP-VK19M09:k8s$ kubectl get hpa
+NAME           REFERENCE                 TARGETS             MINPODS   MAXPODS   REPLICAS   AGE
+node-example   Deployment/node-example   cpu: <unknown>/1%   1         4         0          69s
+
+
+● Open the browser, and access the webpage.
+
+alam@DESKTOP-VK19M09:k8s$ curl http://192.168.49.2:30001
+Hello World!!
+
+● Now it's time to test the HPA working with the below command.
+
+# kubectl run -i --tty load-generator --rm --image=busybox --restart=Never --
+/bin/sh -c "while sleep 0.01; do wget -q -O- http://NODE_PORT_SERVICE_NAME;
+done"
+
+alam@DESKTOP-VK19M09:~$ kubectl run -i --tty load-generator --rm --image=busybox --restart=Never --
+/bin/sh -c "while sleep 0.01; do wget -q -O- http://NODE_PORT_SERVICE_NAME;
+done"
+
+All commands and output from this session will be recorded in container logs, including credentials and 
+sensitive information passed through the command prompt.
+
+
+● Check the HPA from kubectl command and also check if the deployment is scaling up.
+alam@DESKTOP-VK19M09:k8s$ kubectl get hpa -w
+NAME           REFERENCE                 TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+node-example   Deployment/node-example   cpu: 0%/50%   1         4         1          11m
+
+Above command was not generating the load
+
+● Take the snap , prepare a well formatted doc and write your understanding.
+----------------------------------------------------Que 7------------------------------------------------------------------------------------------
+● Create 1 Public Docker Hub registry named cloudethix_cronjob_yourname.
+
+qamre/cloudethix_cronjob_alam
+
+● Initialize a local repository & copy below code (three files) to your local repository in any
+of your working branch.
+
+# vim helloworld.py
+#!/usr/local/bin/python3
+import datetime
+x = datetime.datetime.now()
+print("Welcome to the Cloudethix World")
+print("Today is")
+print(x)
+
+
+# vim Dockerfile
+FROM python:3.7-alpine
+
+#add user group and ass user to that group
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+#creates work dir
+WORKDIR /app
+#copy python script to the container folder app
+COPY helloworld.py /app/helloworld.py
+RUN chmod +x /app/helloworld.py
+#user is appuser
+USER appuser
+ENTRYPOINT ["python", "/app/helloworld.py"]
+
+
+# vim pythoncronjob.yml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+name: python-helloworld
+spec:
+schedule: "*/1 * * * *""
+jobTemplate:
+spec:
+template:
+spec:
+containers:
+- name: python-helloworld
+image: python-helloworld
+command: [/app/helloworld.py]
+restartPolicy: OnFailure
+
+
+
+alam@DESKTOP-VK19M09:cronjob-test$ ls -la
+total 0
+drwxrwxrwx 1 alam alam 4096 Sep  5 10:45 .
+drwxrwxrwx 1 alam alam 4096 Sep  5 10:38 ..
+drwxrwxrwx 1 alam alam 4096 Sep  5 10:45 .git
+-rwxrwxrwx 1 alam alam  350 Sep  5 10:43 Dockerfile
+-rwxrwxrwx 1 alam alam  177 Sep  5 10:39 helloworld.py
+-rwxrwxrwx 1 alam alam  253 Sep  5 10:42 pythoncronjob.yaml
+
+
+● Once code is copied, build the docker image from Dockerfile , add meaningful tags and
+then push the docker image to Docker hub registry.
+
+alam@DESKTOP-VK19M09:cronjob-test$ docker build -t alam-cronjob .
+[+] Building 9.0s (11/11) FINISHED                                                                           docker:default
+ => [internal] load build definition from Dockerfile                                                                   0.1s
+ => => transferring dockerfile: 389B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/python:3.7-alpine                                                   2.3s
+ => [auth] library/python:pull token for registry-1.docker.io                                                          0.0s
+ => [internal] load .dockerignore                                                                                      0.1s
+ => => transferring context: 2B                                                                                        0.0s
+ => [1/5] FROM docker.io/library/python:3.7-alpine@sha256:f3d31c8677d03f0b3c724446077f229a6ce9d3ac430f5c08cd7dff00292  4.2s
+ => => resolve docker.io/library/python:3.7-alpine@sha256:f3d31c8677d03f0b3c724446077f229a6ce9d3ac430f5c08cd7dff00292  0.1s
+ => => sha256:ea1518237b3753b3fe40ee773d77651704178d9baa72ae5012e13a992cfa6c63 2.85MB / 2.85MB                         0.6s
+ => => sha256:148762f75a1f92cc9857e9c488bf95d5aac61e9905ec47a7408025b2dd5c3b7a 240B / 240B                             0.6s
+ => => sha256:4819c95424fc4a94767c9329b02238ebcce0bc682384cb671379bc1fb8a12b55 10.94MB / 10.94MB                       2.6s
+ => => sha256:96526aa774ef0126ad0fe9e9a95764c5fc37f409ab9e97021e7b4775d82bf6fa 3.40MB / 3.40MB                         1.4s
+ => => sha256:9875af95546db78168a6761b7fa205ed1cd0c153cd89356c1512e551c12b2d5c 622.29kB / 622.29kB                     0.8s
+ => => extracting sha256:96526aa774ef0126ad0fe9e9a95764c5fc37f409ab9e97021e7b4775d82bf6fa                              0.4s
+ => => extracting sha256:9875af95546db78168a6761b7fa205ed1cd0c153cd89356c1512e551c12b2d5c                              0.8s
+ => => extracting sha256:4819c95424fc4a94767c9329b02238ebcce0bc682384cb671379bc1fb8a12b55                              0.8s
+ => => extracting sha256:148762f75a1f92cc9857e9c488bf95d5aac61e9905ec47a7408025b2dd5c3b7a                              0.0s
+ => => extracting sha256:ea1518237b3753b3fe40ee773d77651704178d9baa72ae5012e13a992cfa6c63                              0.5s
+ => [internal] load build context                                                                                      0.1s
+ => => transferring context: 219B                                                                                      0.0s
+ => [2/5] RUN addgroup -S appgroup && adduser -S appuser -G appgroup                                                   0.9s
+ => [3/5] WORKDIR /app                                                                                                 0.1s
+ => [4/5] COPY helloworld.py /app/helloworld.py                                                                        0.1s
+ => [5/5] RUN chmod +x /app/helloworld.py                                                                              0.4s
+ => exporting to image                                                                                                 0.7s
+ => => exporting layers                                                                                                0.3s
+ => => exporting manifest sha256:4b43feedfcd3cb814c7971c8757600c033332e05491ce38d733c69656b74d6a6                      0.0s
+ => => exporting config sha256:48919e5836d3e0c1822b5a5e955df82661cdfb44f541238868db7d87405967fc                        0.0s
+ => => exporting attestation manifest sha256:194b1478e105a8122f2d044c0de14bcface8ff49e55bd52b02ba202ae2b6f652          0.1s
+ => => exporting manifest list sha256:081a37e83ef64afd6908da187e5f2c3cc9d374601d6cf161493a9ca091f2b649                 0.0s
+ => => naming to docker.io/library/alam-cronjob:latest                                                                 0.0s
+ => => unpacking to docker.io/library/alam-cronjob:latest                   
+
+
+lam@DESKTOP-VK19M09:cronjob-test$ docker images alam-cronjob:latest
+                                                                                                        i Info →   U  In Use
+IMAGE                 ID             DISK USAGE   CONTENT SIZE   EXTRA
+alam-cronjob:latest   081a37e83ef6       73.1MB         17.8MB
+
+alam@DESKTOP-VK19M09:cronjob-test$ docker tag alam-cronjob:latest qamre/cloudethix_cronjob_alam:v2
+
+alam@DESKTOP-VK19M09:cronjob-test$ docker push qamre/cloudethix_cronjob_alam:v2
+The push refers to repository [docker.io/qamre/cloudethix_cronjob_alam]
+148762f75a1f: Layer already exists
+aaa6e9340ae7: Pushed
+9875af95546d: Layer already exists
+636149a4eeb8: Pushed
+ea1518237b37: Layer already exists
+96526aa774ef: Layer already exists
+2a902023a7e2: Pushed
+e0cdb357abe5: Pushed
+4819c95424fc: Layer already exists
+4f4fb700ef54: Mounted from qamre/cloudethix_hpa_alam
+v2: digest: sha256:081a37e83ef64afd6908da187e5f2c3cc9d374601d6cf161493a9ca091f2b649 size: 856
+
+pushed at :- qamre/cloudethix_cronjob_alam:v2
+
+● Now update the pythoncronjob.yml file to change the image name that you have just
+pushed to docker hub registry.
+
+alam@DESKTOP-VK19M09:cronjob-test$ cat pythoncronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+name: python-helloworld
+spec:
+schedule: "*/1 * * * *""
+jobTemplate:
+spec:
+template:
+spec:
+containers:
+- name: python-helloworld
+image: qamre/cloudethix_cronjob_alam:v2
+command: [/app/helloworld.py]
+restartPolicy: OnFailure
+
+
+● Now create a cron job using pythoncronjob.yml file. Check with kubectl command if the
+cron job is created.
+
+alam@DESKTOP-VK19M09:cronjob-test$ kubectl apply -f pythoncronjob.yaml
+cronjob.batch/python-helloworld created
+
+alam@DESKTOP-VK19M09:cronjob-test$ kubectl get cj
+NAME                SCHEDULE      TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+python-helloworld   */1 * * * *   <none>     False     1        3s              12s
+
+
+
+● Check the Job name which is created by cronjob from command line or lens.
+
+
+alam@DESKTOP-VK19M09:cronjob-test$ kubectl get jobs
+NAME                         STATUS     COMPLETIONS   DURATION   AGE
+manual-test                  Complete   1/1           4s         118s
+python-helloworld-29809822   Complete   1/1           4s         103s
+python-helloworld-29809823   Complete   1/1           4s         43s
+
+alam@DESKTOP-VK19M09:cronjob-test$ kubectl logs job/python-helloworld-29809823
+Welcome to the Cloudethix World
+Today is
+2026-09-05 06:23:01.607928
+
+● Then check the pod logs which are created by the job and capture the output.
+
+alam@DESKTOP-VK19M09:cronjob-test$ kubectl logs python-helloworld-29809829-7fklk
+Welcome to the Cloudethix World
+Today is
+2026-09-05 06:29:01.265890
+
+alam@DESKTOP-VK19M09:cronjob-test$ kubectl logs python-helloworld-29809828-6dd7q
+Welcome to the Cloudethix World
+Today is
+2026-09-05 06:28:01.225058
+
+● Prepare well formatted documents and write your understanding.
+
+
