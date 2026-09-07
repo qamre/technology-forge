@@ -1,0 +1,151 @@
+// Copyright 2021 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"strings"
+
+	"github.com/ahmetb/kubectx/internal/cmdutil"
+	"github.com/ahmetb/kubectx/internal/env"
+	"github.com/ahmetb/kubectx/internal/kubeconfig"
+	"github.com/ahmetb/kubectx/internal/printer"
+)
+
+type InteractiveSwitchOp struct{}
+
+type InteractiveDeleteOp struct{}
+
+func (op InteractiveSwitchOp) Run(_, stderr io.Writer) error {
+	if err := checkIsolatedMode(); err != nil {
+		return err
+	}
+	// parse kubeconfig just to see if it can be loaded
+	kc := new(kubeconfig.Kubeconfig).WithLoader(kubeconfig.DefaultLoader)
+	defer kc.Close()
+	if err := kc.Parse(); err != nil {
+		if cmdutil.IsNotFoundErr(err) {
+			printer.Warning(stderr, "kubeconfig file not found")
+			return nil
+		}
+		return fmt.Errorf("kubeconfig error: %w", err)
+	}
+
+	ctxNames, err := kc.ContextNames()
+	if err != nil {
+		return fmt.Errorf("failed to get context names: %w", err)
+	}
+	if len(ctxNames) == 0 {
+		return errors.New("no contexts found in the kubeconfig file")
+	}
+
+	var in bytes.Buffer
+	if err := formatContextList(kc, &in); err != nil {
+		return err
+	}
+
+	cmd := exec.Command("fzf", "--ansi", "--no-preview")
+	var out bytes.Buffer
+	cmd.Stdin = &in
+	cmd.Stderr = stderr
+	cmd.Stdout = &out
+
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("%s=1", env.EnvForceColor))
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			return err
+		}
+	}
+	choice := strings.TrimSpace(out.String())
+	if choice == "" {
+		return errors.New("you did not choose any of the options")
+	}
+	name, err := switchContext(choice)
+	if err != nil {
+		return fmt.Errorf("failed to switch context: %w", err)
+	}
+	_ = printer.Success(stderr, "Switched to context \"%s\".", printer.SuccessColor.Sprint(name))
+	return nil
+}
+
+func (op InteractiveDeleteOp) Run(_, stderr io.Writer) error {
+	if err := checkIsolatedMode(); err != nil {
+		return err
+	}
+	// parse kubeconfig just to see if it can be loaded
+	kc := new(kubeconfig.Kubeconfig).WithLoader(kubeconfig.DefaultLoader)
+	defer kc.Close()
+	if err := kc.Parse(); err != nil {
+		if cmdutil.IsNotFoundErr(err) {
+			printer.Warning(stderr, "kubeconfig file not found")
+			return nil
+		}
+		return fmt.Errorf("kubeconfig error: %w", err)
+	}
+
+	ctxNames, err := kc.ContextNames()
+	if err != nil {
+		return fmt.Errorf("failed to get context names: %w", err)
+	}
+	if len(ctxNames) == 0 {
+		return errors.New("no contexts found in config")
+	}
+
+	var in bytes.Buffer
+	if err := formatContextList(kc, &in); err != nil {
+		return err
+	}
+
+	cmd := exec.Command("fzf", "--ansi", "--no-preview")
+	var out bytes.Buffer
+	cmd.Stdin = &in
+	cmd.Stderr = stderr
+	cmd.Stdout = &out
+
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("%s=1", env.EnvForceColor))
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			return err
+		}
+	}
+
+	choice := strings.TrimSpace(out.String())
+	if choice == "" {
+		return errors.New("you did not choose any of the options")
+	}
+
+	name, wasActiveContext, err := deleteContext(choice)
+	if err != nil {
+		return fmt.Errorf("failed to delete context: %w", err)
+	}
+
+	if wasActiveContext {
+		printer.Warning(stderr, "You deleted the current context. Use \"%s\" to select a new context.",
+			selfName())
+	}
+
+	_ = printer.Success(stderr, `Deleted context %s.`, printer.SuccessColor.Sprint(name))
+
+	return nil
+}

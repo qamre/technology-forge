@@ -1,0 +1,13 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudethix-clusterip
+spec:
+  type: ClusterIP
+  selector: 
+    app: release-nginx
+  ports:
+    - port: 80
+      targetPort: 80  
+

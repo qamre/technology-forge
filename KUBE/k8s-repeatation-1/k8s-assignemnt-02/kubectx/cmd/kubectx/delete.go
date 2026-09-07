@@ -1,0 +1,89 @@
+// Copyright 2021 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+import (
+	"errors"
+	"fmt"
+	"io"
+
+	"github.com/ahmetb/kubectx/internal/kubeconfig"
+	"github.com/ahmetb/kubectx/internal/printer"
+)
+
+// DeleteOp indicates intention to delete contexts.
+type DeleteOp struct {
+	Contexts []string // NAME or '.' to indicate current-context.
+}
+
+// deleteContexts deletes context entries one by one.
+func (op DeleteOp) Run(_, stderr io.Writer) error {
+	if err := checkIsolatedMode(); err != nil {
+		return err
+	}
+	for _, ctx := range op.Contexts {
+		// TODO inefficiency here. we open/write/close the same file many times.
+		deletedName, wasActiveContext, err := deleteContext(ctx)
+		if err != nil {
+			return fmt.Errorf("error deleting context \"%s\": %w", deletedName, err)
+		}
+		if wasActiveContext {
+			printer.Warning(stderr, "You deleted the current context. Use \"%s\" to select a new context.",
+				selfName())
+		}
+
+		_ = printer.Success(stderr, `Deleted context %s.`, printer.SuccessColor.Sprint(deletedName))
+	}
+	return nil
+}
+
+// deleteContext deletes a context entry by NAME or current-context
+// indicated by ".".
+func deleteContext(name string) (deleteName string, wasActiveContext bool, err error) {
+	kc := new(kubeconfig.Kubeconfig).WithLoader(kubeconfig.DefaultLoader)
+	defer kc.Close()
+	if err := kc.Parse(); err != nil {
+		return deleteName, false, fmt.Errorf("kubeconfig error: %w", err)
+	}
+
+	cur, err := kc.GetCurrentContext()
+	if err != nil {
+		return deleteName, false, fmt.Errorf("failed to get current context: %w", err)
+	}
+	// resolve "." to a real name
+	if name == "." {
+		if cur == "" {
+			return deleteName, false, errors.New("can't use '.' as the no active context is set")
+		}
+		wasActiveContext = true
+		name = cur
+	}
+
+	exists, err := kc.ContextExists(name)
+	if err != nil {
+		return name, false, fmt.Errorf("failed to check context: %w", err)
+	}
+	if !exists {
+		return name, false, errors.New("context does not exist")
+	}
+
+	if err := kc.DeleteContextEntry(name); err != nil {
+		return name, false, fmt.Errorf("failed to modify yaml doc: %w", err)
+	}
+	if err := kc.Save(); err != nil {
+		return name, wasActiveContext, fmt.Errorf("failed to save modified kubeconfig file: %w", err)
+	}
+	return name, wasActiveContext, nil
+}

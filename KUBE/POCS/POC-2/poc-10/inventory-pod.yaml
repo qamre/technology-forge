@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: inventory-service
+  labels:
+    app: inventory-service
+spec:
+  serviceAccountName: app-sa
+
+  containers:
+    - name: inventory
+      image: qamre/inventory-service:v3
+
+      env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+
+      volumeMounts:
+        - name: app-config-volume
+          mountPath: /etc/app/config
+
+        - name: secret-volume
+          mountPath: /etc/app/secrets
+
+        - name: data-volume
+          mountPath: /data
+
+  volumes:
+    - name: app-config-volume
+      configMap:
+        name: app-config
+
+    - name: secret-volume
+      secret:
+        secretName: db-credentials
+
+    - name: data-volume
+      persistentVolumeClaim:
+        claimName: app-data

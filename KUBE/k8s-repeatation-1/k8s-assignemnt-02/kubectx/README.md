@@ -1,0 +1,228 @@
+# `kubectx` + `kubens`: Power tools for kubectl
+
+![Latest GitHub release](https://img.shields.io/github/release/ahmetb/kubectx.svg)
+![GitHub stars](https://img.shields.io/github/stars/ahmetb/kubectx.svg?label=github%20stars)
+![Homebrew downloads](https://img.shields.io/homebrew/installs/dy/kubectx?label=macOS%20installs)
+[![Go implementation (CI)](https://github.com/ahmetb/kubectx/workflows/Go%20implementation%20(CI)/badge.svg)](https://github.com/ahmetb/kubectx/actions?query=workflow%3A"Go+implementation+(CI)")
+
+This repository provides both `kubectx` and `kubens` tools.
+[Install &rarr;](#installation)
+
+## What are `kubectx` and `kubens`?
+
+**kubectx** is a tool to switch between contexts (clusters) on kubectl
+faster, and launch readonly shells for each context.<br/>
+**kubens** is a tool to switch between Kubernetes namespaces (and
+configure them for kubectl) easily.
+
+Here's a **`kubectx`** demo:
+![kubectx demo GIF](img/kubectx-demo.gif)
+
+...and here's a **`kubens`** demo:
+![kubens demo GIF](img/kubens-demo.gif)
+
+### Usage
+
+#### kubectx
+
+Switch to another cluster that's in kubeconfig:
+
+```sh
+$ kubectx minikube
+Switched to context "minikube".
+```
+
+Switch back to previous cluster:
+
+```sh
+$ kubectx -
+Switched to context "oregon".
+```
+
+Start an isolated shell that only has a single context:
+
+```sh
+$ kubectx -s minikube
+```
+
+Start a read-only shell where write operations are blocked:
+
+```sh
+$ kubectx -r minikube
+```
+
+Rename context:
+
+```sh
+$ kubectx dublin=gke_ahmetb_europe-west1-b_dublin
+Context "gke_ahmetb_europe-west1-b_dublin" renamed to "dublin".
+```
+
+#### kubens
+
+Change the active namespace on kubectl:
+
+```sh
+$ kubens kube-system
+Context "test" set.
+Active namespace is "kube-system".
+```
+
+Go back to the previous namespace:
+
+```sh
+$ kubens -
+Context "test" set.
+Active namespace is "default".
+```
+
+Change the active namespace even if it doesn't exist:
+
+```sh
+$ kubens namespace-404 -f
+Context "test" set.
+Active namespace is "namespace-404".
+```
+
+If you have [`fzf`](https://github.com/junegunn/fzf) installed, you can also
+**interactively** select a context or cluster, or fuzzy-search by typing a few
+characters. To learn more, read [interactive mode &rarr;](#interactive-mode)
+
+Both `kubectx` and `kubens` support <kbd>Tab</kbd> completion on bash/zsh/fish
+shells to help with long context names. You don't have to remember full context
+names anymore.
+
+-----
+
+## Installation
+
+| Package manager | Command |
+|---|---|
+| [Homebrew](https://brew.sh/) (macOS & Linux) | `brew install kubectx` |
+| [MacPorts](https://www.macports.org) (macOS) | `sudo port install kubectx` |
+| apt (Debian/Ubuntu) | `sudo apt install kubectx` |
+| pacman (Arch Linux) | `sudo pacman -S kubectx` |
+| [Chocolatey](https://chocolatey.org/) (Windows) | `choco install kubens kubectx` |
+| [Scoop](https://scoop.sh/) (Windows) | `scoop bucket add main && scoop install main/kubens main/kubectx` |
+| [winget](https://learn.microsoft.com/en-us/windows/package-manager/) (Windows) | `winget install --id ahmetb.kubectx && winget install --id ahmetb.kubens` |
+| [Krew](https://github.com/kubernetes-sigs/krew/) (kubectl plugin) | `kubectl krew install ctx && kubectl krew install ns` |
+
+Alternatively, download binaries from the [**Releases page &rarr;**](https://github.com/ahmetb/kubectx/releases) and add them to somewhere in your `PATH`.
+
+<details>
+<summary>Shell completion scripts</summary>
+
+#### zsh (with [antibody](https://getantibody.github.io))
+
+Add this line to your [Plugins File](https://getantibody.github.io/usage/) (e.g.
+`~/.zsh_plugins.txt`):
+
+```
+ahmetb/kubectx path:completion kind:fpath
+```
+
+Depending on your setup, you might or might not need to call `compinit` or
+`autoload -U compinit && compinit` in your `~/.zshrc` after you load the Plugins
+file. If you use [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh), load the
+completions before you load `oh-my-zsh` because `oh-my-zsh` will call
+`compinit`.
+
+#### zsh (plain)
+
+The completion scripts have to be in a path that belongs to `$fpath`. Either
+link or copy them to an existing folder.
+
+Example with [`oh-my-zsh`](https://github.com/ohmyzsh/ohmyzsh):
+
+```bash
+mkdir -p ~/.oh-my-zsh/custom/completions
+chmod -R 755 ~/.oh-my-zsh/custom/completions
+ln -s /opt/kubectx/completion/_kubectx.zsh ~/.oh-my-zsh/custom/completions/_kubectx.zsh
+ln -s /opt/kubectx/completion/_kubens.zsh ~/.oh-my-zsh/custom/completions/_kubens.zsh
+echo "fpath=($ZSH/custom/completions $fpath)" >> ~/.zshrc
+```
+
+If completion doesn't work, add `autoload -U compinit && compinit` to your
+`.zshrc` (similar to
+[`zsh-completions`](https://github.com/zsh-users/zsh-completions/blob/master/README.md#oh-my-zsh)).
+
+If you are not using [`oh-my-zsh`](https://github.com/ohmyzsh/ohmyzsh), you
+could link to `/usr/share/zsh/functions/Completion` (might require sudo),
+depending on the `$fpath` of your zsh installation.
+
+In case of errors, calling `compaudit` might help.
+
+#### bash
+
+```bash
+git clone https://github.com/ahmetb/kubectx.git ~/.kubectx
+COMPDIR=$(pkg-config --variable=completionsdir bash-completion)
+ln -sf ~/.kubectx/completion/kubens.bash $COMPDIR/kubens
+ln -sf ~/.kubectx/completion/kubectx.bash $COMPDIR/kubectx
+cat << EOF >> ~/.bashrc
+
+
+#kubectx and kubens
+export PATH=~/.kubectx:\$PATH
+EOF
+```
+
+#### fish
+
+```fish
+mkdir -p ~/.config/fish/completions
+ln -s /opt/kubectx/completion/kubectx.fish ~/.config/fish/completions/
+ln -s /opt/kubectx/completion/kubens.fish ~/.config/fish/completions/
+```
+
+</details>
+
+> [!NOTE]
+> Tip: Show context/namespace in your shell prompt with [oh-my-posh](https://ohmyposh.dev/) or
+> simply with [kube-ps1](https://github.com/jonmosco/kube-ps1).
+
+-----
+
+### Interactive mode
+
+If you want `kubectx` and `kubens` commands to present you an interactive menu
+with fuzzy searching, you just need to [install
+`fzf`](https://github.com/junegunn/fzf) in your `$PATH`.
+
+![kubectx interactive search with fzf](img/kubectx-interactive.gif)
+
+Caveats:
+- If you have `fzf` installed, but want to opt out of using this feature, set the
+  environment variable `KUBECTX_IGNORE_FZF=1`.
+- If you want to keep `fzf` interactive mode but need the default behavior of the
+  command, you can do it by piping the output to another command (e.g. `kubectx |
+  cat `).
+
+-----
+
+### Customizing colors
+
+If you like to customize the colors indicating the current namespace or context,
+set the environment variables `KUBECTX_CURRENT_FGCOLOR` and
+`KUBECTX_CURRENT_BGCOLOR` (refer color codes
+[here](https://linux.101hacks.com/ps1-examples/prompt-color-using-tput/)):
+
+```sh
+export KUBECTX_CURRENT_FGCOLOR=$(tput setaf 6) # blue text
+export KUBECTX_CURRENT_BGCOLOR=$(tput setab 7) # white background
+```
+
+Colors in the output can be disabled by setting the
+[`NO_COLOR`](https://no-color.org/) environment variable.
+
+-----
+
+If you liked `kubectx`, you may like my
+[`kubectl-aliases`](https://github.com/ahmetb/kubectl-aliases) project, too. I
+recommend pairing kubectx and kubens with [fzf](#interactive-mode) and
+[kube-ps1](https://github.com/jonmosco/kube-ps1).
+
+#### Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/ahmetb/kubectx.svg)](https://starchart.cc/ahmetb/kubectx)
+![Google Analytics](https://ga-beacon.appspot.com/UA-2609286-17/kubectx/README?pixel) <!-- TODO broken since Aug 2021 as igrigorik left Google -->

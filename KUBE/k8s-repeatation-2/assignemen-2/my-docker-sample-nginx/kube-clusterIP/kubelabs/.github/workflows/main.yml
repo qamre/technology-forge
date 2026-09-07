@@ -1,0 +1,44 @@
+# CI workflow for kubelabs
+# Runs basic checks on every push and pull request to master
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Repository Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify repository structure
+        run: |
+          echo "Repository structure check"
+          echo "=========================="
+          echo "Top-level tutorial directories:"
+          find . -maxdepth 1 -type d \( -name '*101' -o -name '*201' \) \
+            | sort | sed 's|^\./||'
+          echo ""
+          echo "Total Markdown files:"
+          find . -name '*.md' ! -path './_site/*' ! -path './.git/*' | wc -l
+
+      - name: Check that tutorial READMEs exist
+        run: |
+          missing=0
+          for dir in $(find . -maxdepth 1 -type d \( -name '*101' -o -name '*201' \) | sort); do
+            if [[ ! -f "$dir/README.md" ]]; then
+              echo "WARNING: $dir is missing a README.md"
+              missing=$((missing+1))
+            fi
+          done
+          echo "Tutorials missing README.md: $missing"

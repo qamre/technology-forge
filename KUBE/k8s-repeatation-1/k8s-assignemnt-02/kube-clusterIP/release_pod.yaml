@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: release-nginx
+  labels:
+    app: release-nginx
+spec:
+  containers:
+    - name: release-nginx
+      image: qamre/cloudethix_release_nginx_qamre:v2
+      ports:
+        - containerPort: 80
