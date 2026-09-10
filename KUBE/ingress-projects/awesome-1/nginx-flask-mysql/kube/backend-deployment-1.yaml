@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+        - name: backend
+          image: qamre/awsome1-repo:backend-v1
+
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: DB_HOST
+              value: "mysql-service"
+
+            - name: DB_USER
+              value: "root"
+
+            - name: DB_PASSWORD
+              value: "rootpassword"
+
+            - name: DB_NAME
+              value: "employees"
+
+            - name: DB_PORT
+              value: "3306"
+
+          volumeMounts:
+            - name: db-password
+              mountPath: /run/secrets/db-password
+              subPath: db-password
+              readOnly: true
+ 
+      volumes:
+        - name: db-password
+          secret:
+            secretName: mysql-secret
+            items:
+              - key: MYSQL_ROOT_PASSWORD
+                path: db-password
