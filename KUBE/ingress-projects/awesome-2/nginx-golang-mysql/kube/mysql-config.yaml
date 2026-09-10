@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: awesome-2
+data:
+  MYSQL_DATABASE: employees
+  MYSQL_USER: root
